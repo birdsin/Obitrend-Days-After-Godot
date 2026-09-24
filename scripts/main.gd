@@ -35,12 +35,16 @@ var day_length_seconds := 300.0
 var time_label: Label
 var save_elapsed := 0.0
 var has_saved_game := false
+var continue_button: Button
+var new_game_button: Button
 
 func _ready() -> void:
     camera.current = true
     camera_rig.rotation.x = camera_pitch
     camera_rig.rotation.y = camera_yaw
-    $HUD/Menu/Panel/Start.pressed.connect(_start_game)
+    $HUD/Menu/Panel/Start.pressed.connect(_new_game)
+    $HUD/Menu/Panel/Start.text = "NEW GAME"
+    _build_checkpoint_menu()
     _build_city_collisions()
     _build_mobile_controls()
     _build_interaction_hud()
@@ -50,6 +54,57 @@ func _ready() -> void:
     has_saved_game = _load_game()
     if has_saved_game:
         _update_world_lighting()
+    if is_instance_valid(continue_button):
+        continue_button.visible = has_saved_game
+    var checkpoint_info := $HUD/Menu/Panel.get_node_or_null("CheckpointInfo") as Label
+    if is_instance_valid(checkpoint_info):
+        checkpoint_info.text = "CHECKPOINT AVAILABLE" if has_saved_game else "NO CHECKPOINT • NEW GAME STARTS FRESH"
+
+func _build_checkpoint_menu() -> void:
+    continue_button = Button.new()
+    continue_button.name = "Continue"
+    continue_button.position = Vector2(42, 190)
+    continue_button.size = Vector2(476, 70)
+    continue_button.text = "CONTINUE"
+    continue_button.focus_mode = Control.FOCUS_NONE
+    continue_button.add_theme_font_size_override("font_size", 24)
+    continue_button.pressed.connect(_continue_game)
+    $HUD/Menu/Panel.add_child(continue_button)
+
+    new_game_button = $HUD/Menu/Panel/Start
+    new_game_button.position = Vector2(42, 275)
+    new_game_button.size = Vector2(476, 62)
+    new_game_button.add_theme_font_size_override("font_size", 22)
+
+    var checkpoint_info := Label.new()
+    checkpoint_info.name = "CheckpointInfo"
+    checkpoint_info.position = Vector2(42, 345)
+    checkpoint_info.size = Vector2(476, 34)
+    checkpoint_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    checkpoint_info.add_theme_font_size_override("font_size", 15)
+    checkpoint_info.modulate = Color(0.55, 0.58, 0.66, 1)
+    checkpoint_info.text = "CHECKPOINT AVAILABLE" if has_saved_game else "NO CHECKPOINT • NEW GAME STARTS FRESH"
+    $HUD/Menu/Panel.add_child(checkpoint_info)
+
+func _continue_game() -> void:
+    if not has_saved_game:
+        _start_game()
+        return
+    _start_game()
+
+func _new_game() -> void:
+    has_saved_game = false
+    supplies_count = 0
+    food_count = 0
+    water_count = 0
+    health = 100.0
+    hunger = 100.0
+    survival_elapsed = 0.0
+    world_time = 8.0
+    save_elapsed = 0.0
+    search_completed = false
+    DirAccess.remove_absolute("user://days_after_save.json")
+    _start_game()
 
 func _build_city_collisions() -> void:
     var buildings := [
