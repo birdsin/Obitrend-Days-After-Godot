@@ -1129,6 +1129,7 @@ func _add_interior_box(pos: Vector3, size: Vector3, color: Color) -> void:
 func _notification(what: int) -> void:
     if what == NOTIFICATION_WM_GO_BACK_REQUEST:
         if menu.visible:
+            get_tree().quit()
             return
         _stop_game()
 
