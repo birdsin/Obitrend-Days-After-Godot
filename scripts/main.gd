@@ -1099,11 +1099,12 @@ func _stop_game() -> void:
 
 
 func _save_game() -> void:
+    var save_position := exterior_player_position if inside_building else player.global_position
     var data := {
         "player_position": {
-            "x": player.global_position.x,
-            "y": player.global_position.y,
-            "z": player.global_position.z
+            "x": save_position.x,
+            "y": save_position.y,
+            "z": save_position.z
         },
         "health": health,
         "hunger": hunger,
