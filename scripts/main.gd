@@ -360,6 +360,7 @@ func _attack_enemy() -> void:
     attack_feedback_time = 0.14
     enemy_hit_flash = 0.12
     enemy_root.modulate = Color(1.8, 0.45, 0.45, 1.0)
+    player_attack_cooldown = maxf(player_attack_cooldown, 0.55)
     if enemy_health <= 0.0:
         enemy_active = false
         enemy_root.visible = false
