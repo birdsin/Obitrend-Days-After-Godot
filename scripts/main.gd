@@ -33,6 +33,7 @@ var game_over := false
 var world_time := 8.0
 var day_number := 1
 var day_length_seconds := 300.0
+var android_perf_accumulator := 0.0
 var time_label: Label
 var save_elapsed := 0.0
 var has_saved_game := false
@@ -666,6 +667,10 @@ func _update_survival_hud() -> void:
 
 func _process(delta: float) -> void:
     player_attack_cooldown = maxf(0.0, player_attack_cooldown - delta)
+    android_perf_accumulator += delta
+    if android_perf_accumulator >= 1.0:
+        android_perf_accumulator = 0.0
+        Engine.max_fps = 60
     attack_feedback_time = maxf(0.0, attack_feedback_time - delta)
     _update_flashlight_flicker(delta)
     if enemy_hit_flash > 0.0:
