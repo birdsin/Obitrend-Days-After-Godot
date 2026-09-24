@@ -43,6 +43,9 @@ var enemy_health := 100.0
 var enemy_attack_cooldown := 0.0
 var stamina := 100.0
 var stamina_label: Label
+var safe_zone_root: Node3D
+var night_survived := false
+var last_world_time := 8.0
 
 func _ready() -> void:
     camera.current = true
@@ -58,6 +61,7 @@ func _ready() -> void:
     _build_stamina_hud()
     _build_time_hud()
     _build_enemy_system()
+    _build_safe_zone()
     _update_world_lighting()
     has_saved_game = _load_game()
     if has_saved_game:
@@ -113,10 +117,43 @@ func _new_game() -> void:
     survival_elapsed = 0.0
     world_time = 8.0
     stamina = 100.0
+    night_survived = false
+    last_world_time = 8.0
     save_elapsed = 0.0
     search_completed = false
     DirAccess.remove_absolute("user://days_after_save.json")
     _start_game()
+
+func _build_safe_zone() -> void:
+    safe_zone_root = Node3D.new()
+    safe_zone_root.name = "SafeZone"
+    safe_zone_root.position = Vector3(0, 0, 18)
+    add_child(safe_zone_root)
+
+    var marker := MeshInstance3D.new()
+    marker.name = "SafeZoneMarker"
+    var cylinder := CylinderMesh.new()
+    cylinder.top_radius = 2.4
+    cylinder.bottom_radius = 2.4
+    cylinder.height = 0.08
+    marker.mesh = cylinder
+    marker.position = Vector3(0, 0.04, 0)
+    var material := StandardMaterial3D.new()
+    material.albedo_color = Color(0.18, 0.48, 0.30)
+    material.emission_enabled = true
+    material.emission = Color(0.08, 0.24, 0.14)
+    material.emission_energy_multiplier = 1.6
+    marker.material_override = material
+    safe_zone_root.add_child(marker)
+
+    var label := Label3D.new()
+    label.name = "SafeZoneLabel"
+    label.text = "SAFE ZONE"
+    label.position = Vector3(0, 0.15, 0)
+    label.font_size = 32
+    label.modulate = Color(0.72, 1.0, 0.80, 1)
+    label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    safe_zone_root.add_child(label)
 
 func _build_enemy_system() -> void:
     enemy_root = Node3D.new()
@@ -459,8 +496,12 @@ func _start_game() -> void:
 
 func _update_survival_hud() -> void:
     inventory_label.text = "SUPPLIES  %d / 1   FOOD  %d   WATER  %d" % [supplies_count, food_count, water_count]
-    if supplies_count >= 1:
-        objective_label.text = "OBJECTIVE  •  Supplies secured"
+    if supplies_count >= 1 and not night_survived and world_time >= 18.0:
+        objective_label.text = "OBJECTIVE  •  Survive until dawn"
+    elif supplies_count >= 1 and night_survived:
+        objective_label.text = "OBJECTIVE  •  Reach the safe zone"
+    elif supplies_count >= 1:
+        objective_label.text = "OBJECTIVE  •  Prepare for night"
     else:
         objective_label.text = "OBJECTIVE  •  Find supplies"
     status_label.text = "HEALTH  %d   HUNGER  %d" % [roundi(health), roundi(hunger)]
@@ -478,7 +519,18 @@ func _process(delta: float) -> void:
     if save_elapsed >= 10.0:
         save_elapsed = 0.0
         _save_game()
+    last_world_time = world_time
     world_time = fmod(world_time + delta * (24.0 / day_length_seconds), 24.0)
+    if supplies_count >= 1 and not night_survived and last_world_time >= 18.0 and world_time < 6.0:
+        night_survived = true
+        enemy_active = false
+        enemy_root.visible = false
+        transition_label.text = "DAWN  •  NIGHT SURVIVED"
+        transition_label.visible = true
+        _save_game()
+        await get_tree().create_timer(1.5).timeout
+        if not game_over:
+            transition_label.visible = false
     _update_world_lighting()
     hunger = maxf(0.0, 100.0 - survival_elapsed * 0.45)
     if hunger <= 0.0:
@@ -496,6 +548,13 @@ func _process(delta: float) -> void:
         _update_interior_interaction()
     else:
         _update_interaction_target()
+        if supplies_count >= 1 and night_survived and is_instance_valid(safe_zone_root):
+            if player.global_position.distance_to(safe_zone_root.global_position) <= 3.0:
+                objective_label.text = "OBJECTIVE COMPLETE  •  Safe zone reached"
+                if health < 100.0:
+                    health = minf(100.0, health + delta * 3.0)
+                if hunger < 100.0:
+                    hunger = minf(100.0, hunger + delta * 1.5)
         _update_enemy(delta)
         if not enemy_active and world_time >= 18.0 and world_time < 18.0 + delta * (24.0 / day_length_seconds) + 0.01:
             _spawn_enemy()
