@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://scripts/player.gd" id="2_player"]
 [ext_resource type="Script" path="res://scripts/campaign_manager.gd" id="3_campaign"]
+[ext_resource type="Script" path="res://scripts/content_manager.gd" id="4_content"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -252,6 +253,9 @@ current = true
 fov = 72
 near = 0.05
 far = 500.0
+
+[node name="ContentManager" type="Node" parent="."]
+script = ExtResource("4_content")
 
 [node name="CampaignManager" type="Node" parent="."]
 script = ExtResource("3_campaign")
