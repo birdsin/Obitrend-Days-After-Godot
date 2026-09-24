@@ -57,6 +57,7 @@ var mission_complete_label: Label
 var flashlight: SpotLight3D
 var flashlight_on := false
 var flashlight_flicker_time := 0.0
+var performance_fps_label: Label
 var enemy_health_label: Label
 var night_threat_spawned := false
 var dawn_message_active := false
@@ -83,6 +84,7 @@ func _ready() -> void:
     _build_mission_complete_hud()
     _build_flashlight()
     _build_enemy_health_hud()
+    _build_performance_hud()
     _update_world_lighting()
     has_saved_game = _load_game()
     if has_saved_game:
@@ -95,6 +97,17 @@ func _ready() -> void:
     var checkpoint_info := $HUD/Menu/Panel.get_node_or_null("CheckpointInfo") as Label
     if is_instance_valid(checkpoint_info):
         checkpoint_info.text = "CHECKPOINT AVAILABLE" if has_saved_game else "NO CHECKPOINT • NEW GAME STARTS FRESH"
+
+func _build_performance_hud() -> void:
+    performance_fps_label = Label.new()
+    performance_fps_label.name = "PerformanceFPS"
+    performance_fps_label.position = Vector2(18, 18)
+    performance_fps_label.size = Vector2(180, 28)
+    performance_fps_label.add_theme_font_size_override("font_size", 14)
+    performance_fps_label.modulate = Color(0.72, 0.78, 0.86, 0.72)
+    performance_fps_label.text = "FPS --"
+    performance_fps_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    $HUD.add_child(performance_fps_label)
 
 func _build_checkpoint_menu() -> void:
     continue_button = Button.new()
@@ -674,6 +687,8 @@ func _process(delta: float) -> void:
         Engine.max_fps = 60
     attack_feedback_time = maxf(0.0, attack_feedback_time - delta)
     _update_flashlight_flicker(delta)
+    if is_instance_valid(performance_fps_label):
+        performance_fps_label.text = "FPS %d" % roundi(Engine.get_frames_per_second())
     if enemy_hit_flash > 0.0:
         enemy_hit_flash = maxf(0.0, enemy_hit_flash - delta)
         if enemy_hit_flash <= 0.0 and is_instance_valid(enemy_root):
