@@ -332,6 +332,11 @@ func _attack_enemy() -> void:
         return
     var distance := player.global_position.distance_to(enemy_root.global_position)
     if distance > 3.2:
+        transition_label.text = "TOO FAR  •  MOVE CLOSER"
+        transition_label.visible = true
+        await get_tree().create_timer(0.45).timeout
+        if not game_over:
+            transition_label.visible = false
         return
     enemy_health -= 50.0
     enemy_hit_flash = 0.12
