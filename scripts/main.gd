@@ -48,6 +48,8 @@ func _ready() -> void:
     _build_time_hud()
     _update_world_lighting()
     has_saved_game = _load_game()
+    if has_saved_game:
+        _update_world_lighting()
 
 func _build_city_collisions() -> void:
     var buildings := [
@@ -251,9 +253,17 @@ func _start_game() -> void:
     camera.current = true
     transition_label.visible = false
     game_over = false
-    health = 100.0
-    hunger = 100.0
-    survival_elapsed = 0.0
+    if not has_saved_game:
+        health = 100.0
+        hunger = 100.0
+        survival_elapsed = 0.0
+        supplies_count = 0
+        food_count = 0
+        water_count = 0
+        world_time = 8.0
+    else:
+        survival_elapsed = (100.0 - hunger) / 0.45
+        _update_world_lighting()
     _update_survival_hud()
 
 func _update_survival_hud() -> void:
