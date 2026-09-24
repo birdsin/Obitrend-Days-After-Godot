@@ -733,6 +733,8 @@ func _process(delta: float) -> void:
             _spawn_enemy()
     if mobile_buttons.has("attack"):
         mobile_buttons["attack"].visible = enemy_active and not inside_building and not game_over
+        mobile_buttons["attack"].disabled = player_attack_cooldown > 0.0
+        mobile_buttons["attack"].text = "ATTACK" if player_attack_cooldown <= 0.0 else "WAIT"
     if is_instance_valid(enemy_health_label):
         enemy_health_label.visible = enemy_active and not inside_building and not game_over
         enemy_health_label.text = "THREAT  %d%%" % roundi((enemy_health / enemy_max_health) * 100.0)
