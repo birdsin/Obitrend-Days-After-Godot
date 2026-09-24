@@ -695,6 +695,11 @@ func _handle_game_over() -> void:
     mobile_buttons["interact"].visible = false
     mobile_buttons["use_food"].visible = false
     mobile_buttons["use_water"].visible = false
+    if is_instance_valid(continue_button):
+        continue_button.visible = has_saved_game
+    var checkpoint_info := $HUD/Menu/Panel.get_node_or_null("CheckpointInfo") as Label
+    if is_instance_valid(checkpoint_info):
+        checkpoint_info.text = "CHECKPOINT AVAILABLE" if has_saved_game else "NO CHECKPOINT • NEW GAME STARTS FRESH"
     mobile_buttons["attack"].visible = false
     interact_label.visible = false
     transition_label.text = "YOU COLLAPSED\nPRESS ESC TO RETURN"
