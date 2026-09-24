@@ -1085,7 +1085,8 @@ func _stop_game() -> void:
             interior_root.queue_free()
             interior_root = null
         player.global_position = exterior_player_position
-    _save_game()
+    if not game_over:
+        _save_game()
     has_saved_game = FileAccess.file_exists("user://days_after_save.json")
     menu.visible = true
     mobile_controls.visible = false
