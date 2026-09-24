@@ -33,6 +33,8 @@ var game_over := false
 var world_time := 8.0
 var day_length_seconds := 300.0
 var time_label: Label
+var save_elapsed := 0.0
+var has_saved_game := false
 
 func _ready() -> void:
     camera.current = true
@@ -45,6 +47,7 @@ func _ready() -> void:
     _build_survival_hud()
     _build_time_hud()
     _update_world_lighting()
+    has_saved_game = _load_game()
 
 func _build_city_collisions() -> void:
     var buildings := [
@@ -270,6 +273,10 @@ func _process(delta: float) -> void:
         return
 
     survival_elapsed += delta
+    save_elapsed += delta
+    if save_elapsed >= 10.0:
+        save_elapsed = 0.0
+        _save_game()
     world_time = fmod(world_time + delta * (24.0 / day_length_seconds), 24.0)
     _update_world_lighting()
     hunger = maxf(0.0, 100.0 - survival_elapsed * 0.45)
@@ -279,6 +286,7 @@ func _process(delta: float) -> void:
     _update_survival_hud()
 
     if health <= 0.0:
+        _save_game()
         _handle_game_over()
         return
 
@@ -378,6 +386,7 @@ func _search_desk() -> void:
     if supplies_count >= 1:
         return
     supplies_count = 1
+    _save_game()
     search_completed = true
     interaction_target = ""
     mobile_buttons["interact"].visible = false
@@ -402,6 +411,7 @@ func _take_food() -> void:
     if food_count >= 1:
         return
     food_count = 1
+    _save_game()
     interaction_target = ""
     mobile_buttons["interact"].visible = false
     _update_survival_hud()
@@ -415,6 +425,7 @@ func _take_water() -> void:
     if water_count >= 1:
         return
     water_count = 1
+    _save_game()
     interaction_target = ""
     mobile_buttons["interact"].visible = false
     _update_survival_hud()
@@ -430,6 +441,7 @@ func _consume_food() -> void:
     food_count -= 1
     hunger = minf(100.0, hunger + 35.0)
     _sync_survival_timer()
+    _save_game()
     _update_survival_hud()
     transition_label.text = "FOOD EATEN  •  HUNGER +35"
     transition_label.visible = true
@@ -442,6 +454,7 @@ func _consume_water() -> void:
     water_count -= 1
     hunger = minf(100.0, hunger + 20.0)
     _sync_survival_timer()
+    _save_game()
     _update_survival_hud()
     transition_label.text = "WATER DRANK  •  HUNGER +20"
     transition_label.visible = true
@@ -641,5 +654,6 @@ func _stop_game() -> void:
     interaction_target = ""
     interact_label.visible = false
     transition_label.visible = false
+    _save_game()
     mobile_buttons["use_food"].visible = false
     mobile_buttons["use_water"].visible = false
