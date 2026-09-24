@@ -54,6 +54,9 @@ func _ready() -> void:
     has_saved_game = _load_game()
     if has_saved_game:
         _update_world_lighting()
+    var original_info := $HUD/Menu/Panel.get_node_or_null("Info") as Label
+    if is_instance_valid(original_info):
+        original_info.visible = false
     if is_instance_valid(continue_button):
         continue_button.visible = has_saved_game
     var checkpoint_info := $HUD/Menu/Panel.get_node_or_null("CheckpointInfo") as Label
@@ -612,9 +615,15 @@ func _create_interior() -> void:
     search_collision.shape = search_shape
     search_body.add_child(search_collision)
     interior_root.add_child(search_body)
+    if supplies_count >= 1:
+        search.visible = false
+        search_body.process_mode = Node.PROCESS_MODE_DISABLED
+        search_collision.disabled = true
 
-    _create_pickup("FoodMesh", "FoodObject", Vector3(-4.5, 0.65, -5.0), Vector3(1.0, 0.8, 1.0), Color(0.62, 0.28, 0.12))
-    _create_pickup("WaterMesh", "WaterObject", Vector3(4.5, 0.7, -5.0), Vector3(0.75, 1.1, 0.75), Color(0.20, 0.42, 0.72))
+    if food_count < 1:
+        _create_pickup("FoodMesh", "FoodObject", Vector3(-4.5, 0.65, -5.0), Vector3(1.0, 0.8, 1.0), Color(0.62, 0.28, 0.12))
+    if water_count < 1:
+        _create_pickup("WaterMesh", "WaterObject", Vector3(4.5, 0.7, -5.0), Vector3(0.75, 1.1, 0.75), Color(0.20, 0.42, 0.72))
 
     var light := OmniLight3D.new()
     light.name = "InteriorLight"
@@ -707,6 +716,7 @@ func _stop_game() -> void:
             interior_root.queue_free()
             interior_root = null
         player.global_position = exterior_player_position
+    _save_game()
     menu.visible = true
     mobile_controls.visible = false
     objective_label.visible = false
@@ -719,6 +729,5 @@ func _stop_game() -> void:
     interaction_target = ""
     interact_label.visible = false
     transition_label.visible = false
-    _save_game()
     mobile_buttons["use_food"].visible = false
     mobile_buttons["use_water"].visible = false
