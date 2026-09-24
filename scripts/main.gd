@@ -37,6 +37,10 @@ var save_elapsed := 0.0
 var has_saved_game := false
 var continue_button: Button
 var new_game_button: Button
+var enemy_root: Node3D
+var enemy_active := false
+var enemy_health := 100.0
+var enemy_attack_cooldown := 0.0
 
 func _ready() -> void:
     camera.current = true
@@ -50,6 +54,7 @@ func _ready() -> void:
     _build_interaction_hud()
     _build_survival_hud()
     _build_time_hud()
+    _build_enemy_system()
     _update_world_lighting()
     has_saved_game = _load_game()
     if has_saved_game:
@@ -109,6 +114,91 @@ func _new_game() -> void:
     DirAccess.remove_absolute("user://days_after_save.json")
     _start_game()
 
+func _build_enemy_system() -> void:
+    enemy_root = Node3D.new()
+    enemy_root.name = "Threat"
+    add_child(enemy_root)
+
+    var mesh := MeshInstance3D.new()
+    mesh.name = "EnemyMesh"
+    var capsule := CapsuleMesh.new()
+    capsule.radius = 0.42
+    capsule.height = 1.8
+    mesh.mesh = capsule
+    mesh.position = Vector3(0, 0.9, 0)
+    var material := StandardMaterial3D.new()
+    material.albedo_color = Color(0.26, 0.09, 0.08)
+    material.roughness = 0.82
+    mesh.material_override = material
+    enemy_root.add_child(mesh)
+
+    var collision := CollisionShape3D.new()
+    collision.name = "CollisionShape3D"
+    var shape := CapsuleShape3D.new()
+    shape.radius = 0.42
+    shape.height = 1.8
+    collision.shape = shape
+    collision.position = Vector3(0, 0.9, 0)
+    enemy_root.add_child(collision)
+    enemy_root.visible = false
+
+func _spawn_enemy() -> void:
+    if not is_instance_valid(enemy_root):
+        return
+    enemy_root.global_position = player.global_position + Vector3(8.0, 0.0, -10.0)
+    enemy_health = 100.0
+    enemy_attack_cooldown = 0.0
+    enemy_active = true
+    enemy_root.visible = true
+    transition_label.text = "THREAT DETECTED"
+    transition_label.visible = true
+    await get_tree().create_timer(1.0).timeout
+    if not game_over:
+        transition_label.visible = false
+
+func _update_enemy(delta: float) -> void:
+    if not enemy_active or not is_instance_valid(enemy_root):
+        return
+    if inside_building:
+        return
+    enemy_attack_cooldown = maxf(0.0, enemy_attack_cooldown - delta)
+    var target := player.global_position
+    var offset := target - enemy_root.global_position
+    offset.y = 0.0
+    var distance := offset.length()
+    if distance > 1.7:
+        enemy_root.global_position += offset.normalized() * minf(2.2 * delta, distance - 1.7)
+        enemy_root.look_at(Vector3(target.x, enemy_root.global_position.y, target.z), Vector3.UP)
+    elif enemy_attack_cooldown <= 0.0:
+        enemy_attack_cooldown = 1.25
+        health = maxf(0.0, health - 8.0)
+        transition_label.text = "ATTACKED  •  HEALTH -8"
+        transition_label.visible = true
+        await get_tree().create_timer(0.65).timeout
+        if not game_over:
+            transition_label.visible = false
+    if distance > 35.0:
+        enemy_active = false
+        enemy_root.visible = false
+
+func _attack_enemy() -> void:
+    if not enemy_active or not is_instance_valid(enemy_root) or inside_building or game_over:
+        return
+    var distance := player.global_position.distance_to(enemy_root.global_position)
+    if distance > 3.2:
+        return
+    enemy_health -= 50.0
+    if enemy_health <= 0.0:
+        enemy_active = false
+        enemy_root.visible = false
+        transition_label.text = "THREAT ELIMINATED"
+    else:
+        transition_label.text = "HIT CONFIRMED  •  THREAT 50%"
+    transition_label.visible = true
+    await get_tree().create_timer(0.75).timeout
+    if not game_over:
+        transition_label.visible = false
+
 func _build_city_collisions() -> void:
     var buildings := [
         [$City/BuildingLeft, Vector3(9, 14, 9)],
@@ -162,6 +252,16 @@ func _build_interaction_hud() -> void:
     $HUD.add_child(use_food)
     mobile_buttons["use_food"] = use_food
     use_food.visible = false
+
+    var attack := Button.new()
+    attack.name = "Attack"
+    attack.text = "ATTACK"
+    attack.size = Vector2(100, 52)
+    attack.focus_mode = Control.FOCUS_NONE
+    attack.pressed.connect(_attack_enemy)
+    $HUD.add_child(attack)
+    mobile_buttons["attack"] = attack
+    attack.visible = false
 
     var use_water := Button.new()
     use_water.name = "UseWater"
@@ -296,6 +396,8 @@ func _layout_mobile_controls() -> void:
         mobile_buttons["interact"].position = Vector2(size.x - margin - 120.0, bottom - 72.0)
     if mobile_buttons.has("use_food"):
         mobile_buttons["use_food"].position = Vector2(size.x - margin - 190.0, bottom - 144.0)
+    if mobile_buttons.has("attack"):
+        mobile_buttons["attack"].position = Vector2(size.x - margin - 100.0, bottom - 216.0)
     if mobile_buttons.has("use_water"):
         mobile_buttons["use_water"].position = Vector2(size.x - margin - 96.0, bottom - 144.0)
 
@@ -323,6 +425,9 @@ func _start_game() -> void:
         survival_elapsed = (100.0 - hunger) / 0.45
         _update_world_lighting()
     _update_survival_hud()
+    if has_saved_game:
+        enemy_active = false
+        enemy_root.visible = false
 
 func _update_survival_hud() -> void:
     inventory_label.text = "SUPPLIES  %d / 1   FOOD  %d   WATER  %d" % [supplies_count, food_count, water_count]
@@ -362,6 +467,11 @@ func _process(delta: float) -> void:
         _update_interior_interaction()
     else:
         _update_interaction_target()
+        _update_enemy(delta)
+        if not enemy_active and world_time >= 18.0 and world_time < 18.0 + delta * (24.0 / day_length_seconds) + 0.01:
+            _spawn_enemy()
+    if mobile_buttons.has("attack"):
+        mobile_buttons["attack"].visible = enemy_active and not inside_building and not game_over
 
 func _handle_game_over() -> void:
     if game_over:
@@ -374,6 +484,7 @@ func _handle_game_over() -> void:
     mobile_buttons["interact"].visible = false
     mobile_buttons["use_food"].visible = false
     mobile_buttons["use_water"].visible = false
+    mobile_buttons["attack"].visible = false
     interact_label.visible = false
     transition_label.text = "YOU COLLAPSED\nPRESS ESC TO RETURN"
     transition_label.visible = true
@@ -690,6 +801,9 @@ func _unhandled_input(event: InputEvent) -> void:
             return
         if event.keycode == KEY_G:
             _consume_water()
+            return
+        if event.keycode == KEY_H:
+            _attack_enemy()
             return
 
     if not menu.visible and event is InputEventScreenTouch:
