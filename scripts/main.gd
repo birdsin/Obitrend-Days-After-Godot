@@ -62,6 +62,7 @@ var performance_sample_time := 0.0
 var performance_sample_frames := 0
 var performance_sample_fps := 0
 var performance_min_fps := 60
+var performance_report_time := 0.0
 var enemy_health_label: Label
 var night_threat_spawned := false
 var dawn_message_active := false
@@ -700,6 +701,7 @@ func _process(delta: float) -> void:
     _update_flashlight_flicker(delta)
     performance_sample_time += delta
     performance_sample_frames += 1
+    performance_report_time += delta
     if performance_sample_time >= 0.5:
         performance_sample_fps = roundi(float(performance_sample_frames) / performance_sample_time)
         performance_min_fps = mini(performance_min_fps, performance_sample_fps)
