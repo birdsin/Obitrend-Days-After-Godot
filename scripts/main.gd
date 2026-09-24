@@ -444,8 +444,7 @@ func _build_stamina_hud() -> void:
     $HUD.add_child(stamina_label)
 
 func _update_stamina(delta: float) -> void:
-    var moving := player.velocity.x * player.velocity.x + player.velocity.z * player.velocity.z > 1.0
-    var sprinting := player.sprint_pressed and moving
+    var sprinting := player.is_sprinting
     if sprinting and stamina > 0.0:
         stamina = maxf(0.0, stamina - delta * 28.0)
     else:
