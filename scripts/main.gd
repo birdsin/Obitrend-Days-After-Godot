@@ -359,6 +359,10 @@ func _attack_enemy() -> void:
     enemy_health -= 50.0
     attack_feedback_time = 0.14
     enemy_hit_flash = 0.12
+    var knockback := enemy_root.global_position - player.global_position
+    knockback.y = 0.0
+    if knockback.length() > 0.1:
+        enemy_root.global_position += knockback.normalized() * 1.25
     enemy_root.modulate = Color(1.8, 0.45, 0.45, 1.0)
     player_attack_cooldown = maxf(player_attack_cooldown, 0.55)
     if enemy_health <= 0.0:
