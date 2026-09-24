@@ -4,6 +4,7 @@ extends Node3D
 @onready var player: CharacterBody3D = $Player
 @onready var camera: Camera3D = $Player/CameraRig/Camera3D
 @onready var camera_rig: Node3D = $Player/CameraRig
+@onready var campaign_manager: Node = $CampaignManager
 
 var mobile_controls: Control
 var mobile_buttons: Dictionary = {}
@@ -68,6 +69,7 @@ var performance_hud_visible := true
 var enemy_health_label: Label
 var night_threat_spawned := false
 var dawn_message_active := false
+var cinematic_active := false
 
 func _ready() -> void:
     # Android 12 GB target: keep a stable 60 FPS ceiling and avoid unnecessary
@@ -94,6 +96,7 @@ func _ready() -> void:
     _build_enemy_health_hud()
     _build_performance_hud()
     _layout_mobile_controls()
+    campaign_manager.cinematic_finished.connect(_on_mission_intro_finished)
     _update_world_lighting()
     has_saved_game = _load_game()
     if has_saved_game:
@@ -638,24 +641,27 @@ func _reset_performance_monitor() -> void:
 func _start_game() -> void:
     _reset_performance_monitor()
     game_over = false
-    player.set_physics_process(true)
-    mobile_controls.visible = true
-    menu.visible = false
-    $HUD/Title.visible = false
-    $HUD/Hint.visible = false
-    mobile_controls.visible = true
-    objective_label.visible = true
-    inventory_label.visible = true
-    status_label.visible = true
-    time_label.visible = true
-    stamina_label.visible = true
-    mission_complete_label.visible = mission_complete
-    mobile_buttons["flashlight"].visible = true
+    cinematic_active = true
     player.clear_mobile_input()
-    player.set_physics_process(true)
+    player.set_physics_process(false)
     camera.current = true
     transition_label.visible = false
-    game_over = false
+    mobile_controls.visible = false
+    menu.visible = true
+    $HUD/Title.visible = false
+    $HUD/Hint.visible = false
+    objective_label.visible = false
+    inventory_label.visible = false
+    status_label.visible = false
+    time_label.visible = false
+    stamina_label.visible = false
+    mission_complete_label.visible = false
+    if mobile_buttons.has("flashlight"):
+        mobile_buttons["flashlight"].visible = false
+    if is_instance_valid(flashlight):
+        flashlight_on = false
+        flashlight.visible = false
+
     if not has_saved_game:
         _reset_transient_game_state()
         health = 100.0
@@ -674,10 +680,31 @@ func _start_game() -> void:
     else:
         survival_elapsed = (100.0 - hunger) / 0.45
         _update_world_lighting()
+
     _update_survival_hud()
     if has_saved_game:
         enemy_active = false
         enemy_root.visible = false
+    campaign_manager.play_mission_intro(1)
+
+func _on_mission_intro_finished() -> void:
+    cinematic_active = false
+    if game_over:
+        return
+    menu.visible = false
+    mobile_controls.visible = true
+    objective_label.visible = true
+    inventory_label.visible = true
+    status_label.visible = true
+    time_label.visible = true
+    stamina_label.visible = true
+    mission_complete_label.visible = mission_complete
+    if mobile_buttons.has("flashlight"):
+        mobile_buttons["flashlight"].visible = true
+    player.clear_mobile_input()
+    player.set_physics_process(true)
+    camera.current = true
+    _update_survival_hud()
 
 func _update_survival_hud() -> void:
     inventory_label.text = "SUPPLIES  %d / 1   FOOD  %d   WATER  %d" % [supplies_count, food_count, water_count]
@@ -718,7 +745,7 @@ func _process(delta: float) -> void:
         enemy_hit_flash = maxf(0.0, enemy_hit_flash - delta)
         if enemy_hit_flash <= 0.0 and is_instance_valid(enemy_root):
             enemy_root.modulate = Color.WHITE
-    if menu.visible or game_over:
+    if menu.visible or game_over or cinematic_active:
         return
 
     survival_elapsed += delta
