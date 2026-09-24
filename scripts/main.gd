@@ -12,6 +12,8 @@ var camera_pitch := -0.18
 var camera_yaw := 0.0
 var camera_sensitivity := 0.008
 var interact_label: Label
+var objective_label: Label
+var inventory_label: Label
 var interaction_target: String = ""
 var inside_building := false
 var exterior_player_position := Vector3.ZERO
@@ -20,6 +22,7 @@ var exterior_camera_pitch := -0.18
 var interior_root: Node3D
 var transition_label: Label
 var search_completed := false
+var supplies_count := 0
 
 func _ready() -> void:
     camera.current = true
@@ -29,6 +32,7 @@ func _ready() -> void:
     _build_city_collisions()
     _build_mobile_controls()
     _build_interaction_hud()
+    _build_survival_hud()
 
 func _build_city_collisions() -> void:
     var buildings := [
@@ -85,6 +89,27 @@ func _build_interaction_hud() -> void:
     transition_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     $HUD.add_child(transition_label)
 
+func _build_survival_hud() -> void:
+    objective_label = Label.new()
+    objective_label.name = "Objective"
+    objective_label.position = Vector2(24, 24)
+    objective_label.size = Vector2(520, 42)
+    objective_label.add_theme_font_size_override("font_size", 18)
+    objective_label.modulate = Color(0.92, 0.92, 0.92, 1)
+    objective_label.text = "OBJECTIVE  •  Find supplies"
+    objective_label.visible = false
+    $HUD.add_child(objective_label)
+
+    inventory_label = Label.new()
+    inventory_label.name = "Inventory"
+    inventory_label.position = Vector2(24, 66)
+    inventory_label.size = Vector2(360, 42)
+    inventory_label.add_theme_font_size_override("font_size", 17)
+    inventory_label.modulate = Color(0.9, 0.75, 0.36, 1)
+    inventory_label.text = "SUPPLIES  0 / 1"
+    inventory_label.visible = false
+    $HUD.add_child(inventory_label)
+
 func _build_mobile_controls() -> void:
     mobile_controls = Control.new()
     mobile_controls.name = "MobileControls"
@@ -132,10 +157,20 @@ func _layout_mobile_controls() -> void:
 func _start_game() -> void:
     menu.visible = false
     mobile_controls.visible = true
+    objective_label.visible = true
+    inventory_label.visible = true
     player.clear_mobile_input()
     player.set_physics_process(true)
     camera.current = true
     transition_label.visible = false
+    _update_survival_hud()
+
+func _update_survival_hud() -> void:
+    inventory_label.text = "SUPPLIES  %d / 1" % supplies_count
+    if supplies_count >= 1:
+        objective_label.text = "OBJECTIVE  •  Supplies secured"
+    else:
+        objective_label.text = "OBJECTIVE  •  Find supplies"
 
 func _process(_delta: float) -> void:
     if menu.visible:
@@ -179,7 +214,7 @@ func _update_interior_interaction() -> void:
 
     if not hit.is_empty():
         var collider = hit.get("collider")
-        if collider is StaticBody3D and collider.name == "SearchObject" and not search_completed:
+        if collider is StaticBody3D and collider.name == "SearchObject" and supplies_count < 1:
             interaction_target = "SEARCH"
             interact_label.text = "Search desk • Tap INTERACT"
             interact_label.visible = true
@@ -201,18 +236,26 @@ func _interact() -> void:
         _search_desk()
 
 func _search_desk() -> void:
-    if search_completed:
+    if supplies_count >= 1:
         return
+    supplies_count = 1
     search_completed = true
     interaction_target = ""
     mobile_buttons["interact"].visible = false
-    interact_label.text = "You found supplies • PHASE 1"
+    _update_survival_hud()
+    interact_label.text = "Supplies secured • PHASE 1"
     interact_label.visible = true
     transition_label.text = "SUPPLIES FOUND"
     transition_label.visible = true
-    var search_object := interior_root.get_node_or_null("SearchObject")
-    if is_instance_valid(search_object):
-        search_object.visible = false
+    var search_mesh := interior_root.get_node_or_null("SearchMesh")
+    if is_instance_valid(search_mesh):
+        search_mesh.visible = false
+    var search_body := interior_root.get_node_or_null("SearchObject")
+    if is_instance_valid(search_body):
+        search_body.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
+        var collision := search_body.get_node_or_null("CollisionShape3D")
+        if is_instance_valid(collision):
+            collision.set_deferred("disabled", true)
     await get_tree().create_timer(1.2).timeout
     transition_label.visible = false
 
@@ -227,7 +270,6 @@ func _enter_building() -> void:
     camera_yaw = 0.0
     camera_pitch = -0.12
     camera_rig.rotation = Vector3(camera_pitch, camera_yaw, 0.0)
-    interact_label.visible = true
     transition_label.text = "ENTERED BUILDING"
     transition_label.visible = true
     await get_tree().create_timer(0.8).timeout
@@ -269,7 +311,7 @@ func _create_interior() -> void:
     _add_interior_box(Vector3(0, 1.0, -6.0), Vector3(7.0, 0.25, 0.25), Color(0.75, 0.58, 0.20))
 
     var search := MeshInstance3D.new()
-    search.name = "SearchObject"
+    search.name = "SearchMesh"
     var search_mesh := BoxMesh.new()
     search_mesh.size = Vector3(2.4, 0.7, 1.1)
     search.mesh = search_mesh
@@ -289,7 +331,6 @@ func _create_interior() -> void:
     search_collision.shape = search_shape
     search_body.add_child(search_collision)
     interior_root.add_child(search_body)
-    search_body.visible = true
 
     var light := OmniLight3D.new()
     light.name = "InteriorLight"
@@ -355,6 +396,8 @@ func _stop_game() -> void:
         player.global_position = exterior_player_position
     menu.visible = true
     mobile_controls.visible = false
+    objective_label.visible = false
+    inventory_label.visible = false
     player.clear_mobile_input()
     player.set_physics_process(false)
     camera_touch_id = -1
