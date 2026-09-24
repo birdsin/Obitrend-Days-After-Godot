@@ -1087,7 +1087,10 @@ func _stop_game() -> void:
         player.global_position = exterior_player_position
     if not game_over:
         _save_game()
-    has_saved_game = FileAccess.file_exists("user://days_after_save.json")
+    if game_over:
+        has_saved_game = false
+    else:
+        has_saved_game = FileAccess.file_exists("user://days_after_save.json")
     menu.visible = true
     if is_instance_valid(continue_button):
         continue_button.visible = has_saved_game
