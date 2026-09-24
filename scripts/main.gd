@@ -61,6 +61,7 @@ var performance_fps_label: Label
 var performance_sample_time := 0.0
 var performance_sample_frames := 0
 var performance_sample_fps := 0
+var performance_min_fps := 60
 var enemy_health_label: Label
 var night_threat_spawned := false
 var dawn_message_active := false
@@ -694,10 +695,11 @@ func _process(delta: float) -> void:
     performance_sample_frames += 1
     if performance_sample_time >= 0.5:
         performance_sample_fps = roundi(float(performance_sample_frames) / performance_sample_time)
+        performance_min_fps = mini(performance_min_fps, performance_sample_fps)
         performance_sample_time = 0.0
         performance_sample_frames = 0
     if is_instance_valid(performance_fps_label):
-        performance_fps_label.text = "FPS %d" % performance_sample_fps
+        performance_fps_label.text = "FPS %d  •  LOW %d" % [performance_sample_fps, performance_min_fps]
     if enemy_hit_flash > 0.0:
         enemy_hit_flash = maxf(0.0, enemy_hit_flash - delta)
         if enemy_hit_flash <= 0.0 and is_instance_valid(enemy_root):
