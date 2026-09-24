@@ -19,6 +19,7 @@ var exterior_camera_yaw := 0.0
 var exterior_camera_pitch := -0.18
 var interior_root: Node3D
 var transition_label: Label
+var search_completed := false
 
 func _ready() -> void:
     camera.current = true
@@ -166,16 +167,54 @@ func _update_interaction_target() -> void:
         mobile_buttons["interact"].visible = true
 
 func _update_interior_interaction() -> void:
-    interaction_target = "EXIT"
-    interact_label.text = "Exit building • Tap INTERACT"
-    interact_label.visible = true
-    mobile_buttons["interact"].visible = true
+    var from := camera.global_position
+    var to := from + -camera.global_transform.basis.z * 4.0
+    var query := PhysicsRayQueryParameters3D.create(from, to)
+    query.exclude = [player.get_rid()]
+    var hit := get_world_3d().direct_space_state.intersect_ray(query)
+
+    interaction_target = ""
+    mobile_buttons["interact"].visible = false
+    interact_label.visible = false
+
+    if not hit.is_empty():
+        var collider = hit.get("collider")
+        if collider is StaticBody3D and collider.name == "SearchObject" and not search_completed:
+            interaction_target = "SEARCH"
+            interact_label.text = "Search desk • Tap INTERACT"
+            interact_label.visible = true
+            mobile_buttons["interact"].visible = true
+            return
+
+    if player.global_position.z > 6.5:
+        interaction_target = "EXIT"
+        interact_label.text = "Exit building • Tap INTERACT"
+        interact_label.visible = true
+        mobile_buttons["interact"].visible = true
 
 func _interact() -> void:
     if interaction_target == "BUILDING" and not inside_building:
         _enter_building()
     elif interaction_target == "EXIT" and inside_building:
         _exit_building()
+    elif interaction_target == "SEARCH" and inside_building:
+        _search_desk()
+
+func _search_desk() -> void:
+    if search_completed:
+        return
+    search_completed = true
+    interaction_target = ""
+    mobile_buttons["interact"].visible = false
+    interact_label.text = "You found supplies • PHASE 1"
+    interact_label.visible = true
+    transition_label.text = "SUPPLIES FOUND"
+    transition_label.visible = true
+    var search_object := interior_root.get_node_or_null("SearchObject")
+    if is_instance_valid(search_object):
+        search_object.visible = false
+    await get_tree().create_timer(1.2).timeout
+    transition_label.visible = false
 
 func _enter_building() -> void:
     exterior_player_position = player.global_position
@@ -228,6 +267,29 @@ func _create_interior() -> void:
     _add_interior_box(Vector3(-4.5, 1.2, -2.5), Vector3(3.5, 0.35, 2.0), Color(0.20, 0.16, 0.11))
     _add_interior_box(Vector3(4.5, 1.2, -2.5), Vector3(3.5, 0.35, 2.0), Color(0.20, 0.16, 0.11))
     _add_interior_box(Vector3(0, 1.0, -6.0), Vector3(7.0, 0.25, 0.25), Color(0.75, 0.58, 0.20))
+
+    var search := MeshInstance3D.new()
+    search.name = "SearchObject"
+    var search_mesh := BoxMesh.new()
+    search_mesh.size = Vector3(2.4, 0.7, 1.1)
+    search.mesh = search_mesh
+    search.position = Vector3(0, 0.65, -3.8)
+    var search_material := StandardMaterial3D.new()
+    search_material.albedo_color = Color(0.32, 0.22, 0.10)
+    search_material.roughness = 0.65
+    search.material_override = search_material
+    interior_root.add_child(search)
+
+    var search_body := StaticBody3D.new()
+    search_body.name = "SearchObject"
+    search_body.position = Vector3(0, 0.65, -3.8)
+    var search_collision := CollisionShape3D.new()
+    var search_shape := BoxShape3D.new()
+    search_shape.size = Vector3(2.4, 0.7, 1.1)
+    search_collision.shape = search_shape
+    search_body.add_child(search_collision)
+    interior_root.add_child(search_body)
+    search_body.visible = true
 
     var light := OmniLight3D.new()
     light.name = "InteriorLight"
