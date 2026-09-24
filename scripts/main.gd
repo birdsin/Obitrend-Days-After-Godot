@@ -24,6 +24,8 @@ var interior_root: Node3D
 var transition_label: Label
 var search_completed := false
 var supplies_count := 0
+var food_count := 0
+var water_count := 0
 var health := 100.0
 var hunger := 100.0
 var survival_elapsed := 0.0
@@ -98,7 +100,7 @@ func _build_survival_hud() -> void:
     objective_label = Label.new()
     objective_label.name = "Objective"
     objective_label.position = Vector2(24, 24)
-    objective_label.size = Vector2(520, 42)
+    objective_label.size = Vector2(600, 42)
     objective_label.add_theme_font_size_override("font_size", 18)
     objective_label.modulate = Color(0.92, 0.92, 0.92, 1)
     objective_label.text = "OBJECTIVE  •  Find supplies"
@@ -108,10 +110,10 @@ func _build_survival_hud() -> void:
     inventory_label = Label.new()
     inventory_label.name = "Inventory"
     inventory_label.position = Vector2(24, 66)
-    inventory_label.size = Vector2(360, 42)
+    inventory_label.size = Vector2(520, 42)
     inventory_label.add_theme_font_size_override("font_size", 17)
     inventory_label.modulate = Color(0.9, 0.75, 0.36, 1)
-    inventory_label.text = "SUPPLIES  0 / 1"
+    inventory_label.text = "SUPPLIES  0 / 1   FOOD  0   WATER  0"
     inventory_label.visible = false
     $HUD.add_child(inventory_label)
 
@@ -186,7 +188,7 @@ func _start_game() -> void:
     _update_survival_hud()
 
 func _update_survival_hud() -> void:
-    inventory_label.text = "SUPPLIES  %d / 1" % supplies_count
+    inventory_label.text = "SUPPLIES  %d / 1   FOOD  %d   WATER  %d" % [supplies_count, food_count, water_count]
     if supplies_count >= 1:
         objective_label.text = "OBJECTIVE  •  Supplies secured"
     else:
@@ -260,12 +262,25 @@ func _update_interior_interaction() -> void:
 
     if not hit.is_empty():
         var collider = hit.get("collider")
-        if collider is StaticBody3D and collider.name == "SearchObject" and supplies_count < 1:
-            interaction_target = "SEARCH"
-            interact_label.text = "Search desk • Tap INTERACT"
-            interact_label.visible = true
-            mobile_buttons["interact"].visible = true
-            return
+        if collider is StaticBody3D:
+            if collider.name == "SearchObject" and supplies_count < 1:
+                interaction_target = "SEARCH"
+                interact_label.text = "Search desk • Tap INTERACT"
+                interact_label.visible = true
+                mobile_buttons["interact"].visible = true
+                return
+            if collider.name == "FoodObject" and food_count < 1:
+                interaction_target = "FOOD"
+                interact_label.text = "Take food • Tap INTERACT"
+                interact_label.visible = true
+                mobile_buttons["interact"].visible = true
+                return
+            if collider.name == "WaterObject" and water_count < 1:
+                interaction_target = "WATER"
+                interact_label.text = "Take water • Tap INTERACT"
+                interact_label.visible = true
+                mobile_buttons["interact"].visible = true
+                return
 
     if player.global_position.z > 6.5:
         interaction_target = "EXIT"
@@ -280,6 +295,10 @@ func _interact() -> void:
         _exit_building()
     elif interaction_target == "SEARCH" and inside_building:
         _search_desk()
+    elif interaction_target == "FOOD" and inside_building:
+        _take_food()
+    elif interaction_target == "WATER" and inside_building:
+        _take_water()
 
 func _search_desk() -> void:
     if supplies_count >= 1:
@@ -304,6 +323,43 @@ func _search_desk() -> void:
             collision.set_deferred("disabled", true)
     await get_tree().create_timer(1.2).timeout
     transition_label.visible = false
+
+func _take_food() -> void:
+    if food_count >= 1:
+        return
+    food_count = 1
+    interaction_target = ""
+    mobile_buttons["interact"].visible = false
+    _update_survival_hud()
+    _remove_pickup("FoodMesh", "FoodObject")
+    transition_label.text = "FOOD COLLECTED"
+    transition_label.visible = true
+    await get_tree().create_timer(0.9).timeout
+    transition_label.visible = false
+
+func _take_water() -> void:
+    if water_count >= 1:
+        return
+    water_count = 1
+    interaction_target = ""
+    mobile_buttons["interact"].visible = false
+    _update_survival_hud()
+    _remove_pickup("WaterMesh", "WaterObject")
+    transition_label.text = "WATER COLLECTED"
+    transition_label.visible = true
+    await get_tree().create_timer(0.9).timeout
+    transition_label.visible = false
+
+func _remove_pickup(mesh_name: String, body_name: String) -> void:
+    var mesh := interior_root.get_node_or_null(mesh_name)
+    if is_instance_valid(mesh):
+        mesh.visible = false
+    var body := interior_root.get_node_or_null(body_name)
+    if is_instance_valid(body):
+        body.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
+        var collision := body.get_node_or_null("CollisionShape3D")
+        if is_instance_valid(collision):
+            collision.set_deferred("disabled", true)
 
 func _enter_building() -> void:
     exterior_player_position = player.global_position
@@ -378,6 +434,9 @@ func _create_interior() -> void:
     search_body.add_child(search_collision)
     interior_root.add_child(search_body)
 
+    _create_pickup("FoodMesh", "FoodObject", Vector3(-4.5, 0.65, -5.0), Vector3(1.0, 0.8, 1.0), Color(0.62, 0.28, 0.12))
+    _create_pickup("WaterMesh", "WaterObject", Vector3(4.5, 0.7, -5.0), Vector3(0.75, 1.1, 0.75), Color(0.20, 0.42, 0.72))
+
     var light := OmniLight3D.new()
     light.name = "InteriorLight"
     light.position = Vector3(0, 5.0, 0)
@@ -385,6 +444,29 @@ func _create_interior() -> void:
     light.omni_range = 16.0
     light.light_color = Color(1.0, 0.86, 0.62)
     interior_root.add_child(light)
+
+func _create_pickup(mesh_name: String, body_name: String, pos: Vector3, size: Vector3, color: Color) -> void:
+    var mesh := MeshInstance3D.new()
+    mesh.name = mesh_name
+    var box := BoxMesh.new()
+    box.size = size
+    mesh.mesh = box
+    mesh.position = pos
+    var material := StandardMaterial3D.new()
+    material.albedo_color = color
+    material.roughness = 0.55
+    mesh.material_override = material
+    interior_root.add_child(mesh)
+
+    var body := StaticBody3D.new()
+    body.name = body_name
+    body.position = pos
+    var collision := CollisionShape3D.new()
+    var shape := BoxShape3D.new()
+    shape.size = size
+    collision.shape = shape
+    body.add_child(collision)
+    interior_root.add_child(body)
 
 func _add_interior_box(pos: Vector3, size: Vector3, color: Color) -> void:
     var mesh_instance := MeshInstance3D.new()
