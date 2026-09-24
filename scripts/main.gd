@@ -93,6 +93,7 @@ func _ready() -> void:
     _build_flashlight()
     _build_enemy_health_hud()
     _build_performance_hud()
+    _layout_mobile_controls()
     _update_world_lighting()
     has_saved_game = _load_game()
     if has_saved_game:
@@ -109,8 +110,8 @@ func _ready() -> void:
 func _build_performance_hud() -> void:
     performance_fps_label = Label.new()
     performance_fps_label.name = "PerformanceFPS"
-    performance_fps_label.position = Vector2(18, 18)
-    performance_fps_label.size = Vector2(180, 28)
+    performance_fps_label.position = Vector2(1060, 18)
+    performance_fps_label.size = Vector2(190, 28)
     performance_fps_label.add_theme_font_size_override("font_size", 14)
     performance_fps_label.modulate = Color(0.72, 0.78, 0.86, 0.72)
     performance_fps_label.text = "FPS --"
@@ -247,8 +248,7 @@ func _toggle_flashlight() -> void:
 func _build_mission_complete_hud() -> void:
     mission_complete_label = Label.new()
     mission_complete_label.name = "MissionComplete"
-    mission_complete_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-    mission_complete_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    mission_complete_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)    mission_complete_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     mission_complete_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
     mission_complete_label.add_theme_font_size_override("font_size", 34)
     mission_complete_label.modulate = Color(0.72, 1.0, 0.80, 1)
@@ -497,7 +497,6 @@ func _build_survival_hud() -> void:
     objective_label.text = "OBJECTIVE  •  Find supplies"
     objective_label.visible = false
     $HUD.add_child(objective_label)
-
     inventory_label = Label.new()
     inventory_label.name = "Inventory"
     inventory_label.position = Vector2(24, 66)
@@ -642,6 +641,8 @@ func _start_game() -> void:
     player.set_physics_process(true)
     mobile_controls.visible = true
     menu.visible = false
+    $HUD/Title.visible = false
+    $HUD/Hint.visible = false
     mobile_controls.visible = true
     objective_label.visible = true
     inventory_label.visible = true
@@ -747,7 +748,6 @@ func _process(delta: float) -> void:
     hunger = maxf(0.0, 100.0 - survival_elapsed * 0.45)
     if hunger <= 0.0:
         health = maxf(0.0, health - delta * 2.0)
-
     _update_survival_hud()
     _update_stamina(delta)
 
@@ -998,305 +998,3 @@ func _enter_building() -> void:
     exterior_camera_yaw = camera_yaw
     exterior_camera_pitch = camera_pitch
     inside_building = true
-    player.clear_mobile_input()
-    _create_interior()
-    player.global_position = Vector3(0, 1.0, 0)
-    camera_yaw = 0.0
-    camera_pitch = -0.12
-    camera_rig.rotation = Vector3(camera_pitch, camera_yaw, 0.0)
-    transition_label.text = "ENTERED BUILDING"
-    transition_label.visible = true
-    await get_tree().create_timer(0.8).timeout
-    transition_label.visible = false
-
-func _exit_building() -> void:
-    inside_building = false
-    player.clear_mobile_input()
-    if is_instance_valid(interior_root):
-        interior_root.queue_free()
-        interior_root = null
-    player.global_position = exterior_player_position + Vector3(0, 0, 2.2)
-    camera_yaw = exterior_camera_yaw
-    camera_pitch = exterior_camera_pitch
-    camera_rig.rotation = Vector3(camera_pitch, camera_yaw, 0.0)
-    interact_label.visible = false
-    transition_label.text = "LEFT BUILDING"
-    transition_label.visible = true
-    await get_tree().create_timer(0.8).timeout
-    transition_label.visible = false
-
-func _create_interior() -> void:
-    if is_instance_valid(interior_root):
-        interior_root.queue_free()
-
-    interior_root = Node3D.new()
-    interior_root.name = "BuildingInterior"
-    add_child(interior_root)
-
-    _add_interior_box(Vector3(0, -0.12, 0), Vector3(18, 0.25, 18), Color(0.10, 0.10, 0.11))
-    _add_interior_box(Vector3(0, 6.0, 0), Vector3(18, 0.25, 18), Color(0.07, 0.07, 0.08))
-    _add_interior_box(Vector3(-9, 3.0, 0), Vector3(0.25, 6, 18), Color(0.14, 0.14, 0.16))
-    _add_interior_box(Vector3(9, 3.0, 0), Vector3(0.25, 6, 18), Color(0.14, 0.14, 0.16))
-    _add_interior_box(Vector3(0, 3.0, -9), Vector3(18, 6, 0.25), Color(0.14, 0.14, 0.16))
-    _add_interior_box(Vector3(0, 3.0, 9), Vector3(18, 6, 0.25), Color(0.14, 0.14, 0.16))
-
-    _add_interior_box(Vector3(-4.5, 1.2, -2.5), Vector3(3.5, 0.35, 2.0), Color(0.20, 0.16, 0.11))
-    _add_interior_box(Vector3(4.5, 1.2, -2.5), Vector3(3.5, 0.35, 2.0), Color(0.20, 0.16, 0.11))
-    _add_interior_box(Vector3(0, 1.0, -6.0), Vector3(7.0, 0.25, 0.25), Color(0.75, 0.58, 0.20))
-
-    var search := MeshInstance3D.new()
-    search.name = "SearchMesh"
-    var search_mesh := BoxMesh.new()
-    search_mesh.size = Vector3(2.4, 0.7, 1.1)
-    search.mesh = search_mesh
-    search.position = Vector3(0, 0.65, -3.8)
-    var search_material := StandardMaterial3D.new()
-    search_material.albedo_color = Color(0.32, 0.22, 0.10)
-    search_material.roughness = 0.65
-    search.material_override = search_material
-    interior_root.add_child(search)
-
-    var search_body := StaticBody3D.new()
-    search_body.name = "SearchObject"
-    search_body.position = Vector3(0, 0.65, -3.8)
-    var search_collision := CollisionShape3D.new()
-    var search_shape := BoxShape3D.new()
-    search_shape.size = Vector3(2.4, 0.7, 1.1)
-    search_collision.shape = search_shape
-    search_body.add_child(search_collision)
-    interior_root.add_child(search_body)
-    if supplies_count >= 1:
-        search.visible = false
-        search_body.process_mode = Node.PROCESS_MODE_DISABLED
-        search_collision.disabled = true
-
-    if food_count < 1:
-        _create_pickup("FoodMesh", "FoodObject", Vector3(-4.5, 0.65, -5.0), Vector3(1.0, 0.8, 1.0), Color(0.62, 0.28, 0.12))
-    if water_count < 1:
-        _create_pickup("WaterMesh", "WaterObject", Vector3(4.5, 0.7, -5.0), Vector3(0.75, 1.1, 0.75), Color(0.20, 0.42, 0.72))
-
-    var light := OmniLight3D.new()
-    light.name = "InteriorLight"
-    light.position = Vector3(0, 5.0, 0)
-    light.light_energy = 2.0
-    light.omni_range = 16.0
-    light.light_color = Color(1.0, 0.86, 0.62)
-    interior_root.add_child(light)
-
-func _create_pickup(mesh_name: String, body_name: String, pos: Vector3, size: Vector3, color: Color) -> void:
-    var mesh := MeshInstance3D.new()
-    mesh.name = mesh_name
-    var box := BoxMesh.new()
-    box.size = size
-    mesh.mesh = box
-    mesh.position = pos
-    var material := StandardMaterial3D.new()
-    material.albedo_color = color
-    material.roughness = 0.55
-    mesh.material_override = material
-    interior_root.add_child(mesh)
-
-    var body := StaticBody3D.new()
-    body.name = body_name
-    body.position = pos
-    var collision := CollisionShape3D.new()
-    var shape := BoxShape3D.new()
-    shape.size = size
-    collision.shape = shape
-    body.add_child(collision)
-    interior_root.add_child(body)
-
-func _add_interior_box(pos: Vector3, size: Vector3, color: Color) -> void:
-    var mesh_instance := MeshInstance3D.new()
-    var mesh := BoxMesh.new()
-    mesh.size = size
-    mesh_instance.mesh = mesh
-    mesh_instance.position = pos
-    var material := StandardMaterial3D.new()
-    material.albedo_color = color
-    material.roughness = 0.72
-    mesh_instance.material_override = material
-    interior_root.add_child(mesh_instance)
-
-    var body := StaticBody3D.new()
-    body.position = pos
-    var collision := CollisionShape3D.new()
-    var shape := BoxShape3D.new()
-    shape.size = size
-    collision.shape = shape
-    body.add_child(collision)
-    interior_root.add_child(body)
-
-func _notification(what: int) -> void:
-    if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-        if menu.visible:
-            get_tree().quit()
-            return
-        _stop_game()
-    elif what == NOTIFICATION_APPLICATION_PAUSED:
-        if android_pause_autosave and not menu.visible and not game_over:
-            player.clear_mobile_input()
-            _save_game()
-    elif what == NOTIFICATION_APPLICATION_RESUMED:
-        if not menu.visible and not game_over:
-            player.clear_mobile_input()
-
-func _unhandled_input(event: InputEvent) -> void:
-    if event is InputEventKey and event.pressed:
-        if event.keycode == KEY_ESCAPE:
-            _stop_game()
-            return
-        if event.keycode == KEY_E:
-            _interact()
-            return
-        if event.keycode == KEY_F:
-            _consume_food()
-            return
-        if event.keycode == KEY_G:
-            _consume_water()
-            return
-        if event.keycode == KEY_H:
-            _attack_enemy()
-            return
-        if event.keycode == KEY_L:
-            _toggle_flashlight()
-            return
-
-    if not menu.visible and event is InputEventScreenTouch:
-        if event.pressed:
-            if event.position.x > get_viewport().get_visible_rect().size.x * 0.38:
-                camera_touch_id = event.index
-        elif event.index == camera_touch_id:
-            camera_touch_id = -1
-        return
-
-    if not menu.visible and event is InputEventScreenDrag and event.index == camera_touch_id:
-        _rotate_camera(event.relative)
-
-func _rotate_camera(relative: Vector2) -> void:
-    camera_yaw -= relative.x * camera_sensitivity
-    camera_pitch = clamp(camera_pitch - relative.y * camera_sensitivity, -0.70, 0.25)
-    camera_rig.rotation.x = camera_pitch
-    camera_rig.rotation.y = camera_yaw
-
-func _reset_transient_game_state() -> void:
-    inside_building = false
-    interaction_target = ""
-    camera_touch_id = -1
-    player.clear_mobile_input()
-    player.sprint_allowed = true
-    player.is_sprinting = false
-    flashlight_on = false
-    if is_instance_valid(flashlight):
-        flashlight.visible = false
-    if is_instance_valid(enemy_root):
-        enemy_active = false
-        enemy_root.visible = false
-    if is_instance_valid(transition_label):
-        transition_label.visible = false
-    if is_instance_valid(interact_label):
-        interact_label.visible = false
-
-func _stop_game() -> void:
-    if inside_building:
-        inside_building = false
-        if is_instance_valid(interior_root):
-            interior_root.queue_free()
-            interior_root = null
-        player.global_position = exterior_player_position
-    if not game_over:
-        _save_game()
-    if game_over:
-        has_saved_game = false
-    else:
-        has_saved_game = FileAccess.file_exists("user://days_after_save.json")
-    menu.visible = true
-    if is_instance_valid(continue_button):
-        continue_button.visible = has_saved_game
-    var checkpoint_info := $HUD/Menu/Panel.get_node_or_null("CheckpointInfo") as Label
-    if is_instance_valid(checkpoint_info):
-        checkpoint_info.text = "CHECKPOINT AVAILABLE" if has_saved_game else "NO CHECKPOINT • NEW GAME STARTS FRESH"
-    mobile_controls.visible = false
-    objective_label.visible = false
-    inventory_label.visible = false
-    status_label.visible = false
-    time_label.visible = false
-    stamina_label.visible = false
-    mission_complete_label.visible = false
-    mobile_buttons["flashlight"].visible = false
-    enemy_health_label.visible = false
-    flashlight_on = false
-    flashlight.visible = false
-    player.clear_mobile_input()
-    player.set_physics_process(false)
-    camera_touch_id = -1
-    interaction_target = ""
-    interact_label.visible = false
-    transition_label.visible = false
-    mobile_buttons["use_food"].visible = false
-    mobile_buttons["use_water"].visible = false
-
-
-func _save_game() -> void:
-    var save_position := exterior_player_position if inside_building else player.global_position
-    var data := {
-        "player_position": {
-            "x": save_position.x,
-            "y": save_position.y,
-            "z": save_position.z
-        },
-        "health": health,
-        "hunger": hunger,
-        "world_time": world_time,
-        "day_number": day_number,
-        "stamina": stamina,
-        "supplies_count": supplies_count,
-        "food_count": food_count,
-        "water_count": water_count,
-        "search_completed": search_completed,
-        "night_survived": night_survived,
-        "mission_complete": mission_complete,
-        "night_threat_spawned": night_threat_spawned
-    }
-    var file := FileAccess.open("user://days_after_save.json", FileAccess.WRITE)
-    if file:
-        file.store_string(JSON.stringify(data))
-        file.close()
-        has_saved_game = true
-
-func _load_game() -> bool:
-    if not FileAccess.file_exists("user://days_after_save.json"):
-        return false
-    var file := FileAccess.open("user://days_after_save.json", FileAccess.READ)
-    if file == null:
-        return false
-    var raw := file.get_as_text()
-    file.close()
-    var parsed = JSON.parse_string(raw)
-    if not (parsed is Dictionary):
-        return false
-
-    health = clampf(float(parsed.get("health", 100.0)), 0.0, 100.0)
-    hunger = clampf(float(parsed.get("hunger", 100.0)), 0.0, 100.0)
-    world_time = fmod(float(parsed.get("world_time", 8.0)), 24.0)
-    day_number = maxi(1, int(parsed.get("day_number", 1)))
-    stamina = clampf(float(parsed.get("stamina", 100.0)), 0.0, 100.0)
-    supplies_count = int(parsed.get("supplies_count", 0))
-    food_count = int(parsed.get("food_count", 0))
-    water_count = int(parsed.get("water_count", 0))
-    search_completed = bool(parsed.get("search_completed", supplies_count >= 1))
-    night_survived = bool(parsed.get("night_survived", false))
-    mission_complete = bool(parsed.get("mission_complete", false))
-    night_threat_spawned = bool(parsed.get("night_threat_spawned", world_time >= 18.0 and not night_survived))
-
-    var saved_position = parsed.get("player_position", {})
-    if saved_position is Dictionary:
-        player.global_position = Vector3(
-            float(saved_position.get("x", player.global_position.x)),
-            float(saved_position.get("y", player.global_position.y)),
-            float(saved_position.get("z", player.global_position.z))
-        )
-
-    last_world_time = world_time
-    has_saved_game = true
-    return true
