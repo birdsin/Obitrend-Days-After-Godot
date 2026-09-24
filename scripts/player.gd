@@ -2,12 +2,31 @@ extends CharacterBody3D
 
 @export var speed := 5.0
 @export var gravity := 18.0
+@export var world_limit := 44.0
+
+var mobile_input := Vector2.ZERO
 
 func _ready() -> void:
     set_physics_process(false)
 
+func set_mobile_direction(action: String, pressed: bool) -> void:
+    var value := 1.0 if pressed else 0.0
+    match action:
+        "forward":
+            mobile_input.y = -value
+        "back":
+            mobile_input.y = value
+        "left":
+            mobile_input.x = -value
+        "right":
+            mobile_input.x = value
+
+func clear_mobile_input() -> void:
+    mobile_input = Vector2.ZERO
+
 func _physics_process(delta: float) -> void:
-    var input_vec := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+    var keyboard_input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+    var input_vec := mobile_input if mobile_input.length() > 0.01 else keyboard_input
     var direction := Vector3(input_vec.x, 0.0, input_vec.y)
 
     if direction.length() > 0.1:
@@ -25,3 +44,5 @@ func _physics_process(delta: float) -> void:
         velocity.y = 0.0
 
     move_and_slide()
+    global_position.x = clamp(global_position.x, -world_limit, world_limit)
+    global_position.z = clamp(global_position.z, -world_limit, world_limit)
