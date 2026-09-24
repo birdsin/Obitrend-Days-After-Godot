@@ -14,6 +14,7 @@ var camera_sensitivity := 0.008
 var interact_label: Label
 var objective_label: Label
 var inventory_label: Label
+var status_label: Label
 var interaction_target: String = ""
 var inside_building := false
 var exterior_player_position := Vector3.ZERO
@@ -23,6 +24,10 @@ var interior_root: Node3D
 var transition_label: Label
 var search_completed := false
 var supplies_count := 0
+var health := 100.0
+var hunger := 100.0
+var survival_elapsed := 0.0
+var game_over := false
 
 func _ready() -> void:
     camera.current = true
@@ -110,6 +115,16 @@ func _build_survival_hud() -> void:
     inventory_label.visible = false
     $HUD.add_child(inventory_label)
 
+    status_label = Label.new()
+    status_label.name = "Status"
+    status_label.position = Vector2(24, 108)
+    status_label.size = Vector2(620, 42)
+    status_label.add_theme_font_size_override("font_size", 16)
+    status_label.modulate = Color(0.86, 0.86, 0.86, 1)
+    status_label.text = "HEALTH  100   HUNGER  100"
+    status_label.visible = false
+    $HUD.add_child(status_label)
+
 func _build_mobile_controls() -> void:
     mobile_controls = Control.new()
     mobile_controls.name = "MobileControls"
@@ -159,10 +174,15 @@ func _start_game() -> void:
     mobile_controls.visible = true
     objective_label.visible = true
     inventory_label.visible = true
+    status_label.visible = true
     player.clear_mobile_input()
     player.set_physics_process(true)
     camera.current = true
     transition_label.visible = false
+    game_over = false
+    health = 100.0
+    hunger = 100.0
+    survival_elapsed = 0.0
     _update_survival_hud()
 
 func _update_survival_hud() -> void:
@@ -171,14 +191,40 @@ func _update_survival_hud() -> void:
         objective_label.text = "OBJECTIVE  •  Supplies secured"
     else:
         objective_label.text = "OBJECTIVE  •  Find supplies"
+    status_label.text = "HEALTH  %d   HUNGER  %d" % [roundi(health), roundi(hunger)]
 
-func _process(_delta: float) -> void:
-    if menu.visible:
+func _process(delta: float) -> void:
+    if menu.visible or game_over:
         return
+
+    survival_elapsed += delta
+    hunger = maxf(0.0, 100.0 - survival_elapsed * 0.45)
+    if hunger <= 0.0:
+        health = maxf(0.0, health - delta * 2.0)
+
+    _update_survival_hud()
+
+    if health <= 0.0:
+        _handle_game_over()
+        return
+
     if inside_building:
         _update_interior_interaction()
     else:
         _update_interaction_target()
+
+func _handle_game_over() -> void:
+    if game_over:
+        return
+    game_over = true
+    player.clear_mobile_input()
+    player.set_physics_process(false)
+    mobile_controls.visible = false
+    interaction_target = ""
+    mobile_buttons["interact"].visible = false
+    interact_label.visible = false
+    transition_label.text = "YOU COLLAPSED\nPRESS ESC TO RETURN"
+    transition_label.visible = true
 
 func _update_interaction_target() -> void:
     var from := camera.global_position
@@ -398,6 +444,7 @@ func _stop_game() -> void:
     mobile_controls.visible = false
     objective_label.visible = false
     inventory_label.visible = false
+    status_label.visible = false
     player.clear_mobile_input()
     player.set_physics_process(false)
     camera_touch_id = -1
