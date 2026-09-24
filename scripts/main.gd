@@ -46,6 +46,8 @@ var stamina_label: Label
 var safe_zone_root: Node3D
 var night_survived := false
 var last_world_time := 8.0
+var mission_complete := false
+var mission_complete_label: Label
 
 func _ready() -> void:
     camera.current = true
@@ -62,6 +64,7 @@ func _ready() -> void:
     _build_time_hud()
     _build_enemy_system()
     _build_safe_zone()
+    _build_mission_complete_hud()
     _update_world_lighting()
     has_saved_game = _load_game()
     if has_saved_game:
@@ -119,10 +122,24 @@ func _new_game() -> void:
     stamina = 100.0
     night_survived = false
     last_world_time = 8.0
+    mission_complete = false
     save_elapsed = 0.0
     search_completed = false
     DirAccess.remove_absolute("user://days_after_save.json")
     _start_game()
+
+func _build_mission_complete_hud() -> void:
+    mission_complete_label = Label.new()
+    mission_complete_label.name = "MissionComplete"
+    mission_complete_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    mission_complete_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    mission_complete_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    mission_complete_label.add_theme_font_size_override("font_size", 34)
+    mission_complete_label.modulate = Color(0.72, 1.0, 0.80, 1)
+    mission_complete_label.text = "MISSION COMPLETE\nDAY'S AFTER"
+    mission_complete_label.visible = false
+    mission_complete_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    $HUD.add_child(mission_complete_label)
 
 func _build_safe_zone() -> void:
     safe_zone_root = Node3D.new()
@@ -473,6 +490,7 @@ func _start_game() -> void:
     status_label.visible = true
     time_label.visible = true
     stamina_label.visible = true
+    mission_complete_label.visible = mission_complete
     player.clear_mobile_input()
     player.set_physics_process(true)
     camera.current = true
@@ -551,6 +569,12 @@ func _process(delta: float) -> void:
         if supplies_count >= 1 and night_survived and is_instance_valid(safe_zone_root):
             if player.global_position.distance_to(safe_zone_root.global_position) <= 3.0:
                 objective_label.text = "OBJECTIVE COMPLETE  •  Safe zone reached"
+                if not mission_complete:
+                    mission_complete = true
+                    mission_complete_label.visible = true
+                    enemy_active = false
+                    enemy_root.visible = false
+                    _save_game()
                 if health < 100.0:
                     health = minf(100.0, health + delta * 3.0)
                 if hunger < 100.0:
@@ -926,6 +950,7 @@ func _stop_game() -> void:
     status_label.visible = false
     time_label.visible = false
     stamina_label.visible = false
+    mission_complete_label.visible = false
     player.clear_mobile_input()
     player.set_physics_process(false)
     camera_touch_id = -1
