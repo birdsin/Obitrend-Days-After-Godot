@@ -7,6 +7,7 @@ extends CharacterBody3D
 
 var mobile_input := Vector2.ZERO
 var sprint_pressed := false
+var sprint_allowed := true
 
 func _ready() -> void:
     set_physics_process(false)
@@ -36,7 +37,7 @@ func _physics_process(delta: float) -> void:
 
     if direction.length() > 0.1:
         direction = direction.normalized()
-        var current_speed := sprint_speed if sprint_pressed or Input.is_key_pressed(KEY_SHIFT) else speed
+        var current_speed := sprint_speed if sprint_allowed and (sprint_pressed or Input.is_key_pressed(KEY_SHIFT)) else speed
         velocity.x = direction.x * current_speed
         velocity.z = direction.z * current_speed
         rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), delta * 8.0)
