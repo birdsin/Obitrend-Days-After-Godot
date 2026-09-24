@@ -51,6 +51,7 @@ var mission_complete_label: Label
 var flashlight: SpotLight3D
 var flashlight_on := false
 var enemy_health_label: Label
+var night_threat_spawned := false
 
 func _ready() -> void:
     camera.current = true
@@ -128,6 +129,7 @@ func _new_game() -> void:
     night_survived = false
     last_world_time = 8.0
     mission_complete = false
+    night_threat_spawned = false
     save_elapsed = 0.0
     search_completed = false
     DirAccess.remove_absolute("user://days_after_save.json")
@@ -597,6 +599,7 @@ func _process(delta: float) -> void:
     world_time = fmod(world_time + delta * (24.0 / day_length_seconds), 24.0)
     if supplies_count >= 1 and not night_survived and last_world_time >= 18.0 and world_time < 6.0:
         night_survived = true
+        night_threat_spawned = false
         enemy_active = false
         enemy_root.visible = false
         transition_label.text = "DAWN  •  NIGHT SURVIVED"
@@ -636,7 +639,8 @@ func _process(delta: float) -> void:
                 if hunger < 100.0:
                     hunger = minf(100.0, hunger + delta * 1.5)
         _update_enemy(delta)
-        if not enemy_active and world_time >= 18.0 and world_time < 18.0 + delta * (24.0 / day_length_seconds) + 0.01:
+        if supplies_count >= 1 and not night_survived and not night_threat_spawned and world_time >= 18.0:
+            night_threat_spawned = true
             _spawn_enemy()
     if mobile_buttons.has("attack"):
         mobile_buttons["attack"].visible = enemy_active and not inside_building and not game_over
@@ -1043,7 +1047,8 @@ func _save_game() -> void:
         "water_count": water_count,
         "search_completed": search_completed,
         "night_survived": night_survived,
-        "mission_complete": mission_complete
+        "mission_complete": mission_complete,
+        "night_threat_spawned": night_threat_spawned
     }
     var file := FileAccess.open("user://days_after_save.json", FileAccess.WRITE)
     if file:
@@ -1073,6 +1078,7 @@ func _load_game() -> bool:
     search_completed = bool(parsed.get("search_completed", supplies_count >= 1))
     night_survived = bool(parsed.get("night_survived", false))
     mission_complete = bool(parsed.get("mission_complete", false))
+    night_threat_spawned = bool(parsed.get("night_threat_spawned", world_time >= 18.0 and not night_survived))
 
     var saved_position = parsed.get("player_position", {})
     if saved_position is Dictionary:
