@@ -31,6 +31,7 @@ var hunger := 100.0
 var survival_elapsed := 0.0
 var game_over := false
 var world_time := 8.0
+var day_number := 1
 var day_length_seconds := 300.0
 var time_label: Label
 var save_elapsed := 0.0
@@ -125,6 +126,7 @@ func _new_game() -> void:
     hunger = 100.0
     survival_elapsed = 0.0
     world_time = 8.0
+    day_number = 1
     stamina = 100.0
     night_survived = false
     last_world_time = 8.0
@@ -458,7 +460,7 @@ func _build_time_hud() -> void:
     time_label.size = Vector2(300, 38)
     time_label.add_theme_font_size_override("font_size", 15)
     time_label.modulate = Color(0.72, 0.74, 0.80, 1)
-    time_label.text = "DAY 1  •  08:00  •  MORNING"
+    time_label.text = "DAY %d  •  08:00  •  MORNING" % day_number
     time_label.visible = false
     $HUD.add_child(time_label)
 
@@ -485,7 +487,7 @@ func _update_world_lighting() -> void:
             period = "AFTERNOON"
         elif cycle >= 18.0 and cycle < 22.0:
             period = "EVENING"
-        time_label.text = "DAY 1  •  %02d:%02d  •  %s" % [hour, minute, period]
+        time_label.text = "DAY %d  •  %02d:%02d  •  %s" % [day_number, hour, minute, period]
 
 func _build_mobile_controls() -> void:
     mobile_controls = Control.new()
@@ -596,7 +598,10 @@ func _process(delta: float) -> void:
         save_elapsed = 0.0
         _save_game()
     last_world_time = world_time
-    world_time = fmod(world_time + delta * (24.0 / day_length_seconds), 24.0)
+    var next_world_time := world_time + delta * (24.0 / day_length_seconds)
+    if next_world_time >= 24.0:
+        day_number += int(floor(next_world_time / 24.0))
+    world_time = fmod(next_world_time, 24.0)
     if supplies_count >= 1 and not night_survived and last_world_time >= 18.0 and world_time < 6.0:
         night_survived = true
         night_threat_spawned = false
@@ -1041,6 +1046,7 @@ func _save_game() -> void:
         "health": health,
         "hunger": hunger,
         "world_time": world_time,
+        "day_number": day_number,
         "stamina": stamina,
         "supplies_count": supplies_count,
         "food_count": food_count,
@@ -1071,6 +1077,7 @@ func _load_game() -> bool:
     health = clampf(float(parsed.get("health", 100.0)), 0.0, 100.0)
     hunger = clampf(float(parsed.get("hunger", 100.0)), 0.0, 100.0)
     world_time = fmod(float(parsed.get("world_time", 8.0)), 24.0)
+    day_number = maxi(1, int(parsed.get("day_number", 1)))
     stamina = clampf(float(parsed.get("stamina", 100.0)), 0.0, 100.0)
     supplies_count = int(parsed.get("supplies_count", 0))
     food_count = int(parsed.get("food_count", 0))
