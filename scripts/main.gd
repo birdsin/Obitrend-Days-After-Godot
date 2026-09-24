@@ -41,6 +41,8 @@ var enemy_root: Node3D
 var enemy_active := false
 var enemy_health := 100.0
 var enemy_attack_cooldown := 0.0
+var stamina := 100.0
+var stamina_label: Label
 
 func _ready() -> void:
     camera.current = true
@@ -53,6 +55,7 @@ func _ready() -> void:
     _build_mobile_controls()
     _build_interaction_hud()
     _build_survival_hud()
+    _build_stamina_hud()
     _build_time_hud()
     _build_enemy_system()
     _update_world_lighting()
@@ -109,6 +112,7 @@ func _new_game() -> void:
     hunger = 100.0
     survival_elapsed = 0.0
     world_time = 8.0
+    stamina = 100.0
     save_elapsed = 0.0
     search_completed = false
     DirAccess.remove_absolute("user://days_after_save.json")
@@ -315,6 +319,29 @@ func _build_survival_hud() -> void:
     status_label.visible = false
     $HUD.add_child(status_label)
 
+func _build_stamina_hud() -> void:
+    stamina_label = Label.new()
+    stamina_label.name = "Stamina"
+    stamina_label.position = Vector2(24, 188)
+    stamina_label.size = Vector2(300, 34)
+    stamina_label.add_theme_font_size_override("font_size", 15)
+    stamina_label.modulate = Color(0.72, 0.74, 0.80, 1)
+    stamina_label.text = "STAMINA  100"
+    stamina_label.visible = false
+    $HUD.add_child(stamina_label)
+
+func _update_stamina(delta: float) -> void:
+    var moving := player.velocity.x * player.velocity.x + player.velocity.z * player.velocity.z > 1.0
+    var sprinting := player.sprint_pressed and moving
+    if sprinting and stamina > 0.0:
+        stamina = maxf(0.0, stamina - delta * 28.0)
+    else:
+        stamina = minf(100.0, stamina + delta * 18.0)
+    player.sprint_allowed = stamina > 0.5
+    if is_instance_valid(stamina_label):
+        stamina_label.text = "STAMINA  %d" % roundi(stamina)
+        stamina_label.visible = not menu.visible and not game_over
+
 func _build_time_hud() -> void:
     time_label = Label.new()
     time_label.name = "WorldTime"
@@ -408,6 +435,7 @@ func _start_game() -> void:
     inventory_label.visible = true
     status_label.visible = true
     time_label.visible = true
+    stamina_label.visible = true
     player.clear_mobile_input()
     player.set_physics_process(true)
     camera.current = true
@@ -457,6 +485,7 @@ func _process(delta: float) -> void:
         health = maxf(0.0, health - delta * 2.0)
 
     _update_survival_hud()
+    _update_stamina(delta)
 
     if health <= 0.0:
         _save_game()
@@ -837,6 +866,7 @@ func _stop_game() -> void:
     inventory_label.visible = false
     status_label.visible = false
     time_label.visible = false
+    stamina_label.visible = false
     player.clear_mobile_input()
     player.set_physics_process(false)
     camera_touch_id = -1
