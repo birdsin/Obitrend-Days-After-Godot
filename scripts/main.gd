@@ -546,6 +546,9 @@ func _layout_mobile_controls() -> void:
         mobile_buttons["flashlight"].position = Vector2(size.x - margin - 96.0, bottom - 72.0)
 
 func _start_game() -> void:
+    game_over = false
+    player.set_physics_process(true)
+    mobile_controls.visible = true
     menu.visible = false
     mobile_controls.visible = true
     objective_label.visible = true
