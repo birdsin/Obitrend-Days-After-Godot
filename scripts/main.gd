@@ -34,6 +34,7 @@ var world_time := 8.0
 var day_number := 1
 var day_length_seconds := 300.0
 var android_perf_accumulator := 0.0
+var android_pause_autosave := true
 var time_label: Label
 var save_elapsed := 0.0
 var has_saved_game := false
@@ -1133,7 +1134,7 @@ func _notification(what: int) -> void:
             return
         _stop_game()
     elif what == NOTIFICATION_APPLICATION_PAUSED:
-        if not menu.visible and not game_over:
+        if android_pause_autosave and not menu.visible and not game_over:
             player.clear_mobile_input()
             _save_game()
     elif what == NOTIFICATION_APPLICATION_RESUMED:
