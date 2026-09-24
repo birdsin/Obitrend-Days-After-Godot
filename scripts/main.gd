@@ -11,6 +11,8 @@ var camera_touch_id := -1
 var camera_pitch := -0.18
 var camera_yaw := 0.0
 var camera_sensitivity := 0.008
+var interact_label: Label
+var interaction_target: String = ""
 
 func _ready() -> void:
     camera.current = true
@@ -19,6 +21,7 @@ func _ready() -> void:
     $HUD/Menu/Panel/Start.pressed.connect(_start_game)
     _build_city_collisions()
     _build_mobile_controls()
+    _build_interaction_hud()
 
 func _build_city_collisions() -> void:
     var buildings := [
@@ -28,9 +31,7 @@ func _build_city_collisions() -> void:
         [$City/TowerFar, Vector3(12, 28, 10)]
     ]
     for item in buildings:
-        var mesh_node: MeshInstance3D = item[0]
-        var size: Vector3 = item[1]
-        _add_box_collider(mesh_node.global_position, size, "BuildingCollision")
+        _add_box_collider(item[0].global_position, item[1], "BuildingCollision")
 
 func _add_box_collider(pos: Vector3, size: Vector3, collider_name: String) -> void:
     var body := StaticBody3D.new()
@@ -42,6 +43,29 @@ func _add_box_collider(pos: Vector3, size: Vector3, collider_name: String) -> vo
     shape_node.shape = shape
     body.add_child(shape_node)
     $City.add_child(body)
+
+func _build_interaction_hud() -> void:
+    interact_label = Label.new()
+    interact_label.name = "InteractionHint"
+    interact_label.position = Vector2(0, 0)
+    interact_label.size = Vector2(1280, 70)
+    interact_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    interact_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+    interact_label.add_theme_font_size_override("font_size", 20)
+    interact_label.modulate = Color(0.9, 0.75, 0.36, 1)
+    interact_label.visible = false
+    $HUD.add_child(interact_label)
+
+    var button := Button.new()
+    button.name = "Interact"
+    button.text = "INTERACT"
+    button.size = Vector2(120, 58)
+    button.focus_mode = Control.FOCUS_NONE
+    button.position = Vector2(0, 0)
+    button.pressed.connect(_interact)
+    $HUD.add_child(button)
+    mobile_buttons["interact"] = button
+    button.visible = false
 
 func _build_mobile_controls() -> void:
     mobile_controls = Control.new()
@@ -84,6 +108,8 @@ func _layout_mobile_controls() -> void:
     mobile_buttons["right"].position = Vector2(margin + (button_size.x + gap) * 2.0, bottom)
     mobile_buttons["forward"].position = Vector2(margin + button_size.x + gap, bottom - button_size.y - gap)
     mobile_buttons["sprint"].position = Vector2(size.x - margin - 82.0, bottom)
+    if mobile_buttons.has("interact"):
+        mobile_buttons["interact"].position = Vector2(size.x - margin - 120.0, bottom - 72.0)
 
 func _start_game() -> void:
     menu.visible = false
@@ -92,10 +118,45 @@ func _start_game() -> void:
     player.set_physics_process(true)
     camera.current = true
 
-func _unhandled_input(event: InputEvent) -> void:
-    if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-        _stop_game()
+func _process(_delta: float) -> void:
+    if menu.visible:
         return
+    _update_interaction_target()
+
+func _update_interaction_target() -> void:
+    var from := camera.global_position
+    var to := from + -camera.global_transform.basis.z * 5.0
+    var query := PhysicsRayQueryParameters3D.create(from, to)
+    query.exclude = [player.get_rid()]
+    var hit := get_world_3d().direct_space_state.intersect_ray(query)
+
+    interaction_target = ""
+    mobile_buttons["interact"].visible = false
+    interact_label.visible = false
+
+    if hit.is_empty():
+        return
+
+    var collider = hit.get("collider")
+    if collider is StaticBody3D and collider.name == "BuildingCollision":
+        interaction_target = "BUILDING"
+        interact_label.text = "Building entrance • Tap INTERACT"
+        interact_label.visible = true
+        mobile_buttons["interact"].visible = true
+
+func _interact() -> void:
+    if interaction_target == "BUILDING":
+        interact_label.text = "Entrance interaction ready • PHASE 1"
+        interact_label.visible = true
+
+func _unhandled_input(event: InputEvent) -> void:
+    if event is InputEventKey and event.pressed:
+        if event.keycode == KEY_ESCAPE:
+            _stop_game()
+            return
+        if event.keycode == KEY_E:
+            _interact()
+            return
 
     if not menu.visible and event is InputEventScreenTouch:
         if event.pressed:
@@ -105,9 +166,8 @@ func _unhandled_input(event: InputEvent) -> void:
             camera_touch_id = -1
         return
 
-    if not menu.visible and event is InputEventScreenDrag:
-        if event.index == camera_touch_id:
-            _rotate_camera(event.relative)
+    if not menu.visible and event is InputEventScreenDrag and event.index == camera_touch_id:
+        _rotate_camera(event.relative)
 
 func _rotate_camera(relative: Vector2) -> void:
     camera_yaw -= relative.x * camera_sensitivity
@@ -121,3 +181,4 @@ func _stop_game() -> void:
     player.clear_mobile_input()
     player.set_physics_process(false)
     camera_touch_id = -1
+    interaction_target = ""
