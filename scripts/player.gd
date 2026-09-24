@@ -1,10 +1,12 @@
 extends CharacterBody3D
 
 @export var speed := 5.0
+@export var sprint_speed := 7.5
 @export var gravity := 18.0
 @export var world_limit := 44.0
 
 var mobile_input := Vector2.ZERO
+var sprint_pressed := false
 
 func _ready() -> void:
     set_physics_process(false)
@@ -20,9 +22,12 @@ func set_mobile_direction(action: String, pressed: bool) -> void:
             mobile_input.x = -value
         "right":
             mobile_input.x = value
+        "sprint":
+            sprint_pressed = pressed
 
 func clear_mobile_input() -> void:
     mobile_input = Vector2.ZERO
+    sprint_pressed = false
 
 func _physics_process(delta: float) -> void:
     var keyboard_input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
@@ -31,8 +36,9 @@ func _physics_process(delta: float) -> void:
 
     if direction.length() > 0.1:
         direction = direction.normalized()
-        velocity.x = direction.x * speed
-        velocity.z = direction.z * speed
+        var current_speed := sprint_speed if sprint_pressed or Input.is_key_pressed(KEY_SHIFT) else speed
+        velocity.x = direction.x * current_speed
+        velocity.z = direction.z * current_speed
         rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), delta * 8.0)
     else:
         velocity.x = move_toward(velocity.x, 0.0, speed * 8.0 * delta)
