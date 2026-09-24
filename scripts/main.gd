@@ -647,6 +647,7 @@ func _process(delta: float) -> void:
                     health = minf(100.0, health + delta * 3.0)
                 if hunger < 100.0:
                     hunger = minf(100.0, hunger + delta * 1.5)
+                    _sync_survival_timer()
         _update_enemy(delta)
         if supplies_count >= 1 and not night_survived and not night_threat_spawned and world_time >= 18.0:
             night_threat_spawned = true
