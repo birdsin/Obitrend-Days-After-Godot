@@ -530,7 +530,7 @@ func _build_stamina_hud() -> void:
     $HUD.add_child(stamina_label)
 
 func _update_stamina(delta: float) -> void:
-    var sprinting := player.is_sprinting
+    var sprinting: bool = player.is_sprinting
     if sprinting and stamina > 0.0:
         stamina = maxf(0.0, stamina - delta * 28.0)
     else:
@@ -555,7 +555,7 @@ func _build_time_hud() -> void:
 
 func _update_world_lighting() -> void:
     var sun := get_node_or_null("Sun") as DirectionalLight3D
-    var environment := $WorldEnvironment.environment
+    var environment: Environment = $WorldEnvironment.environment
     var cycle := fmod(world_time, 24.0)
     var daylight := 0.0
     if cycle >= 6.0 and cycle < 18.0:
