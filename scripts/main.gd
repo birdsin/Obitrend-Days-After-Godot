@@ -17,7 +17,31 @@ func _ready() -> void:
     camera_rig.rotation.x = camera_pitch
     camera_rig.rotation.y = camera_yaw
     $HUD/Menu/Panel/Start.pressed.connect(_start_game)
+    _build_city_collisions()
     _build_mobile_controls()
+
+func _build_city_collisions() -> void:
+    var buildings := [
+        [$City/BuildingLeft, Vector3(9, 14, 9)],
+        [$City/BuildingCenter, Vector3(8, 20, 8)],
+        [$City/BuildingRight, Vector3(9, 14, 9)],
+        [$City/TowerFar, Vector3(12, 28, 10)]
+    ]
+    for item in buildings:
+        var mesh_node: MeshInstance3D = item[0]
+        var size: Vector3 = item[1]
+        _add_box_collider(mesh_node.global_position, size, "BuildingCollision")
+
+func _add_box_collider(pos: Vector3, size: Vector3, collider_name: String) -> void:
+    var body := StaticBody3D.new()
+    body.name = collider_name
+    body.position = pos
+    var shape_node := CollisionShape3D.new()
+    var shape := BoxShape3D.new()
+    shape.size = size
+    shape_node.shape = shape
+    body.add_child(shape_node)
+    $City.add_child(body)
 
 func _build_mobile_controls() -> void:
     mobile_controls = Control.new()
@@ -26,16 +50,15 @@ func _build_mobile_controls() -> void:
     mobile_controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
     $HUD.add_child(mobile_controls)
 
-    var labels := {"forward": "▲", "back": "▼", "left": "◀", "right": "▶"}
-
+    var labels := {"forward": "▲", "back": "▼", "left": "◀", "right": "▶", "sprint": "RUN"}
     for action in labels:
         var button := Button.new()
         button.name = action.capitalize()
         button.text = labels[action]
-        button.size = Vector2(64, 58)
+        button.size = Vector2(64, 58) if action != "sprint" else Vector2(82, 58)
         button.focus_mode = Control.FOCUS_NONE
         button.mouse_filter = Control.MOUSE_FILTER_PASS
-        button.add_theme_font_size_override("font_size", 26)
+        button.add_theme_font_size_override("font_size", 26 if action != "sprint" else 18)
         button.modulate = Color(1, 1, 1, 0.86)
         mobile_controls.add_child(button)
         mobile_buttons[action] = button
@@ -60,6 +83,7 @@ func _layout_mobile_controls() -> void:
     mobile_buttons["left"].position = Vector2(margin, bottom)
     mobile_buttons["right"].position = Vector2(margin + (button_size.x + gap) * 2.0, bottom)
     mobile_buttons["forward"].position = Vector2(margin + button_size.x + gap, bottom - button_size.y - gap)
+    mobile_buttons["sprint"].position = Vector2(size.x - margin - 82.0, bottom)
 
 func _start_game() -> void:
     menu.visible = false
@@ -84,7 +108,6 @@ func _unhandled_input(event: InputEvent) -> void:
     if not menu.visible and event is InputEventScreenDrag:
         if event.index == camera_touch_id:
             _rotate_camera(event.relative)
-        return
 
 func _rotate_camera(relative: Vector2) -> void:
     camera_yaw -= relative.x * camera_sensitivity
