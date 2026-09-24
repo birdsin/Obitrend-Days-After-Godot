@@ -657,6 +657,8 @@ func _process(delta: float) -> void:
     if is_instance_valid(enemy_health_label):
         enemy_health_label.visible = enemy_active and not inside_building and not game_over
         enemy_health_label.text = "THREAT  %d%%" % roundi((enemy_health / enemy_max_health) * 100.0)
+    if is_instance_valid(mission_complete_label):
+        mission_complete_label.visible = mission_complete and not menu.visible and not game_over
 
 func _handle_game_over() -> void:
     if game_over:
