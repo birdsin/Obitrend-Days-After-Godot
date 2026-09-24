@@ -45,6 +45,7 @@ var enemy_attack_cooldown := 0.0
 var enemy_hit_flash := 0.0
 var enemy_max_health := 100.0
 var player_attack_cooldown := 0.0
+var attack_feedback_time := 0.0
 var stamina := 100.0
 var stamina_label: Label
 var safe_zone_root: Node3D
@@ -356,6 +357,7 @@ func _attack_enemy() -> void:
             transition_label.visible = false
         return
     enemy_health -= 50.0
+    attack_feedback_time = 0.14
     enemy_hit_flash = 0.12
     enemy_root.modulate = Color(1.8, 0.45, 0.45, 1.0)
     if enemy_health <= 0.0:
@@ -656,6 +658,7 @@ func _update_survival_hud() -> void:
 
 func _process(delta: float) -> void:
     player_attack_cooldown = maxf(0.0, player_attack_cooldown - delta)
+    attack_feedback_time = maxf(0.0, attack_feedback_time - delta)
     _update_flashlight_flicker(delta)
     if enemy_hit_flash > 0.0:
         enemy_hit_flash = maxf(0.0, enemy_hit_flash - delta)
@@ -735,6 +738,8 @@ func _process(delta: float) -> void:
         mobile_buttons["attack"].visible = enemy_active and not inside_building and not game_over
         mobile_buttons["attack"].disabled = player_attack_cooldown > 0.0
         mobile_buttons["attack"].text = "ATTACK" if player_attack_cooldown <= 0.0 else "WAIT"
+        if attack_feedback_time > 0.0:
+            mobile_buttons["attack"].modulate = Color(1.0, 0.85, 0.30, 1.0)
     if is_instance_valid(enemy_health_label):
         enemy_health_label.visible = enemy_active and not inside_building and not game_over
         enemy_health_label.text = "THREAT  %d%%" % roundi((enemy_health / enemy_max_health) * 100.0)
