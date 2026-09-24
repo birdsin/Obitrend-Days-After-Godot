@@ -120,6 +120,7 @@ func _continue_game() -> void:
     _start_game()
 
 func _new_game() -> void:
+    _reset_transient_game_state()
     has_saved_game = false
     supplies_count = 0
     food_count = 0
