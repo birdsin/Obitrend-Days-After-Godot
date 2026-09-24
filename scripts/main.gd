@@ -117,6 +117,10 @@ func _continue_game() -> void:
     if not has_saved_game:
         _start_game()
         return
+    if not FileAccess.file_exists("user://days_after_save.json"):
+        has_saved_game = false
+        _start_game()
+        return
     _reset_transient_game_state()
     _start_game()
 
