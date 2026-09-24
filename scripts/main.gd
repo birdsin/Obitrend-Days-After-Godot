@@ -690,6 +690,8 @@ func _handle_game_over() -> void:
     interact_label.visible = false
     transition_label.text = "YOU COLLAPSED\nPRESS ESC TO RETURN"
     transition_label.visible = true
+    has_saved_game = false
+    DirAccess.remove_absolute("user://days_after_save.json")
 
 func _update_interaction_target() -> void:
     var from := camera.global_position
