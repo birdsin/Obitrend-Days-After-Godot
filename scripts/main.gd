@@ -48,6 +48,8 @@ var night_survived := false
 var last_world_time := 8.0
 var mission_complete := false
 var mission_complete_label: Label
+var flashlight: SpotLight3D
+var flashlight_on := false
 
 func _ready() -> void:
     camera.current = true
@@ -65,6 +67,7 @@ func _ready() -> void:
     _build_enemy_system()
     _build_safe_zone()
     _build_mission_complete_hud()
+    _build_flashlight()
     _update_world_lighting()
     has_saved_game = _load_game()
     if has_saved_game:
@@ -127,6 +130,41 @@ func _new_game() -> void:
     search_completed = false
     DirAccess.remove_absolute("user://days_after_save.json")
     _start_game()
+
+func _build_flashlight() -> void:
+    flashlight = SpotLight3D.new()
+    flashlight.name = "Flashlight"
+    flashlight.position = Vector3(0.25, 0.05, -0.35)
+    flashlight.rotation_degrees = Vector3(-4.0, 0.0, 0.0)
+    flashlight.light_energy = 3.2
+    flashlight.spot_range = 22.0
+    flashlight.spot_angle = 32.0
+    flashlight.shadow_enabled = true
+    flashlight.visible = false
+    camera.add_child(flashlight)
+
+    var button := Button.new()
+    button.name = "Flashlight"
+    button.text = "LIGHT"
+    button.size = Vector2(86, 52)
+    button.focus_mode = Control.FOCUS_NONE
+    button.pressed.connect(_toggle_flashlight)
+    $HUD.add_child(button)
+    mobile_buttons["flashlight"] = button
+    button.visible = false
+
+func _toggle_flashlight() -> void:
+    if menu.visible or game_over:
+        return
+    flashlight_on = not flashlight_on
+    flashlight.visible = flashlight_on
+    if mobile_buttons.has("flashlight"):
+        mobile_buttons["flashlight"].text = "LIGHT ON" if flashlight_on else "LIGHT"
+    transition_label.text = "FLASHLIGHT ON" if flashlight_on else "FLASHLIGHT OFF"
+    transition_label.visible = true
+    await get_tree().create_timer(0.45).timeout
+    if not game_over:
+        transition_label.visible = false
 
 func _build_mission_complete_hud() -> void:
     mission_complete_label = Label.new()
@@ -481,6 +519,8 @@ func _layout_mobile_controls() -> void:
         mobile_buttons["attack"].position = Vector2(size.x - margin - 100.0, bottom - 216.0)
     if mobile_buttons.has("use_water"):
         mobile_buttons["use_water"].position = Vector2(size.x - margin - 96.0, bottom - 144.0)
+    if mobile_buttons.has("flashlight"):
+        mobile_buttons["flashlight"].position = Vector2(size.x - margin - 96.0, bottom - 72.0)
 
 func _start_game() -> void:
     menu.visible = false
@@ -491,6 +531,7 @@ func _start_game() -> void:
     time_label.visible = true
     stamina_label.visible = true
     mission_complete_label.visible = mission_complete
+    mobile_buttons["flashlight"].visible = true
     player.clear_mobile_input()
     player.set_physics_process(true)
     camera.current = true
@@ -917,6 +958,9 @@ func _unhandled_input(event: InputEvent) -> void:
         if event.keycode == KEY_H:
             _attack_enemy()
             return
+        if event.keycode == KEY_L:
+            _toggle_flashlight()
+            return
 
     if not menu.visible and event is InputEventScreenTouch:
         if event.pressed:
@@ -951,6 +995,9 @@ func _stop_game() -> void:
     time_label.visible = false
     stamina_label.visible = false
     mission_complete_label.visible = false
+    mobile_buttons["flashlight"].visible = false
+    flashlight_on = false
+    flashlight.visible = false
     player.clear_mobile_input()
     player.set_physics_process(false)
     camera_touch_id = -1
