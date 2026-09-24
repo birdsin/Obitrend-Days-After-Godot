@@ -30,6 +30,9 @@ var health := 100.0
 var hunger := 100.0
 var survival_elapsed := 0.0
 var game_over := false
+var world_time := 8.0
+var day_length_seconds := 300.0
+var time_label: Label
 
 func _ready() -> void:
     camera.current = true
@@ -40,6 +43,8 @@ func _ready() -> void:
     _build_mobile_controls()
     _build_interaction_hud()
     _build_survival_hud()
+    _build_time_hud()
+    _update_world_lighting()
 
 func _build_city_collisions() -> void:
     var buildings := [
@@ -147,6 +152,42 @@ func _build_survival_hud() -> void:
     status_label.visible = false
     $HUD.add_child(status_label)
 
+func _build_time_hud() -> void:
+    time_label = Label.new()
+    time_label.name = "WorldTime"
+    time_label.position = Vector2(24, 150)
+    time_label.size = Vector2(300, 38)
+    time_label.add_theme_font_size_override("font_size", 15)
+    time_label.modulate = Color(0.72, 0.74, 0.80, 1)
+    time_label.text = "DAY 1  •  08:00  •  MORNING"
+    time_label.visible = false
+    $HUD.add_child(time_label)
+
+func _update_world_lighting() -> void:
+    var sun := get_node_or_null("Sun") as DirectionalLight3D
+    var environment := $WorldEnvironment.environment
+    var cycle := fmod(world_time, 24.0)
+    var daylight := 0.0
+    if cycle >= 6.0 and cycle < 18.0:
+        daylight = sin((cycle - 6.0) / 12.0 * PI)
+    if is_instance_valid(sun):
+        sun.rotation_degrees = Vector3(-18.0 - daylight * 52.0, -25.0, 0.0)
+        sun.light_energy = 0.18 + daylight * 1.42
+    if environment:
+        environment.ambient_light_energy = 0.32 + daylight * 0.83
+        environment.background_color = Color(0.018 + daylight * 0.045, 0.025 + daylight * 0.055, 0.045 + daylight * 0.10, 1.0)
+    if is_instance_valid(time_label):
+        var hour := int(floor(cycle))
+        var minute := int(floor((cycle - hour) * 60.0))
+        var period := "NIGHT"
+        if cycle >= 6.0 and cycle < 12.0:
+            period = "MORNING"
+        elif cycle >= 12.0 and cycle < 18.0:
+            period = "AFTERNOON"
+        elif cycle >= 18.0 and cycle < 22.0:
+            period = "EVENING"
+        time_label.text = "DAY 1  •  %02d:%02d  •  %s" % [hour, minute, period]
+
 func _build_mobile_controls() -> void:
     mobile_controls = Control.new()
     mobile_controls.name = "MobileControls"
@@ -201,6 +242,7 @@ func _start_game() -> void:
     objective_label.visible = true
     inventory_label.visible = true
     status_label.visible = true
+    time_label.visible = true
     player.clear_mobile_input()
     player.set_physics_process(true)
     camera.current = true
@@ -228,6 +270,8 @@ func _process(delta: float) -> void:
         return
 
     survival_elapsed += delta
+    world_time = fmod(world_time + delta * (24.0 / day_length_seconds), 24.0)
+    _update_world_lighting()
     hunger = maxf(0.0, 100.0 - survival_elapsed * 0.45)
     if hunger <= 0.0:
         health = maxf(0.0, health - delta * 2.0)
@@ -590,6 +634,7 @@ func _stop_game() -> void:
     objective_label.visible = false
     inventory_label.visible = false
     status_label.visible = false
+    time_label.visible = false
     player.clear_mobile_input()
     player.set_physics_process(false)
     camera_touch_id = -1
