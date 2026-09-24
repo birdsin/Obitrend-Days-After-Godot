@@ -44,6 +44,7 @@ var enemy_health := 100.0
 var enemy_attack_cooldown := 0.0
 var enemy_hit_flash := 0.0
 var enemy_max_health := 100.0
+var player_attack_cooldown := 0.0
 var stamina := 100.0
 var stamina_label: Label
 var safe_zone_root: Node3D
@@ -333,6 +334,9 @@ func _update_enemy(delta: float) -> void:
 func _attack_enemy() -> void:
     if not enemy_active or not is_instance_valid(enemy_root) or inside_building or game_over:
         return
+    if player_attack_cooldown > 0.0:
+        return
+    player_attack_cooldown = 0.55
     var distance := player.global_position.distance_to(enemy_root.global_position)
     if distance > 3.2:
         transition_label.text = "TOO FAR  •  MOVE CLOSER"
@@ -641,6 +645,7 @@ func _update_survival_hud() -> void:
         mobile_buttons["use_water"].visible = water_count > 0 and hunger < 99.0 and not menu.visible and not game_over
 
 func _process(delta: float) -> void:
+    player_attack_cooldown = maxf(0.0, player_attack_cooldown - delta)
     _update_flashlight_flicker(delta)
     if enemy_hit_flash > 0.0:
         enemy_hit_flash = maxf(0.0, enemy_hit_flash - delta)
