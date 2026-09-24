@@ -656,7 +656,7 @@ func _process(delta: float) -> void:
     if is_instance_valid(mobile_buttons.get("flashlight")):
         mobile_buttons["flashlight"].visible = not menu.visible and not game_over
         mobile_buttons["flashlight"].text = "LIGHT ON" if flashlight_on else "LIGHT"
-        mobile_buttons["flashlight"].disabled = game_over
+        mobile_buttons["flashlight"].disabled = menu.visible or game_over
         if inside_building:
             mobile_buttons["flashlight"].modulate = Color(1.0, 0.88, 0.55, 1.0)
         else:
