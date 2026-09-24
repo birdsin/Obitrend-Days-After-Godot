@@ -50,6 +50,7 @@ var mission_complete := false
 var mission_complete_label: Label
 var flashlight: SpotLight3D
 var flashlight_on := false
+var enemy_health_label: Label
 
 func _ready() -> void:
     camera.current = true
@@ -68,6 +69,7 @@ func _ready() -> void:
     _build_safe_zone()
     _build_mission_complete_hud()
     _build_flashlight()
+    _build_enemy_health_hud()
     _update_world_lighting()
     has_saved_game = _load_game()
     if has_saved_game:
@@ -130,6 +132,19 @@ func _new_game() -> void:
     search_completed = false
     DirAccess.remove_absolute("user://days_after_save.json")
     _start_game()
+
+func _build_enemy_health_hud() -> void:
+    enemy_health_label = Label.new()
+    enemy_health_label.name = "ThreatHealth"
+    enemy_health_label.position = Vector2(0, 208)
+    enemy_health_label.size = Vector2(1280, 34)
+    enemy_health_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    enemy_health_label.add_theme_font_size_override("font_size", 18)
+    enemy_health_label.modulate = Color(0.95, 0.45, 0.40, 1)
+    enemy_health_label.text = "THREAT  100%"
+    enemy_health_label.visible = false
+    enemy_health_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    $HUD.add_child(enemy_health_label)
 
 func _build_flashlight() -> void:
     flashlight = SpotLight3D.new()
@@ -625,6 +640,9 @@ func _process(delta: float) -> void:
             _spawn_enemy()
     if mobile_buttons.has("attack"):
         mobile_buttons["attack"].visible = enemy_active and not inside_building and not game_over
+    if is_instance_valid(enemy_health_label):
+        enemy_health_label.visible = enemy_active and not inside_building and not game_over
+        enemy_health_label.text = "THREAT  %d%%" % roundi(enemy_health)
 
 func _handle_game_over() -> void:
     if game_over:
@@ -996,6 +1014,7 @@ func _stop_game() -> void:
     stamina_label.visible = false
     mission_complete_label.visible = false
     mobile_buttons["flashlight"].visible = false
+    enemy_health_label.visible = false
     flashlight_on = false
     flashlight.visible = false
     player.clear_mobile_input()
