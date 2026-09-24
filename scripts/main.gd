@@ -1132,6 +1132,13 @@ func _notification(what: int) -> void:
             get_tree().quit()
             return
         _stop_game()
+    elif what == NOTIFICATION_APPLICATION_PAUSED:
+        if not menu.visible and not game_over:
+            player.clear_mobile_input()
+            _save_game()
+    elif what == NOTIFICATION_APPLICATION_RESUMED:
+        if not menu.visible and not game_over:
+            player.clear_mobile_input()
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventKey and event.pressed:
