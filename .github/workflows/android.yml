@@ -10,9 +10,25 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: barichello/godot-ci:4.7.2
+    env:
+      ANDROID_HOME: /usr/lib/android-sdk
+      ANDROID_SDK_ROOT: /usr/lib/android-sdk
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Prepare Godot Android export environment
+        run: |
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          mkdir -p "$HOME/.config/godot"
+          cp -a /root/.local/share/godot/export_templates/4.7.2.stable "$HOME/.local/share/godot/export_templates/"
+          if [ -f /root/.config/godot/editor_settings-4.7.tres ]; then
+            cp /root/.config/godot/editor_settings-4.7.tres "$HOME/.config/godot/"
+          fi
+          test -d "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          test -d "$ANDROID_HOME/platforms/android-33"
+          test -d "$ANDROID_HOME/build-tools/33.0.2"
 
       - name: Verify Godot
         run: godot --version
