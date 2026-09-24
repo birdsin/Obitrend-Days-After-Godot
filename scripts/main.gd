@@ -1023,6 +1023,9 @@ func _reset_transient_game_state() -> void:
     inside_building = false
     interaction_target = ""
     camera_touch_id = -1
+    player.clear_mobile_input()
+    player.sprint_allowed = true
+    player.is_sprinting = false
     flashlight_on = false
     if is_instance_valid(flashlight):
         flashlight.visible = false
