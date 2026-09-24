@@ -469,6 +469,8 @@ func _update_stamina(delta: float) -> void:
     else:
         stamina = minf(100.0, stamina + delta * 18.0)
     player.sprint_allowed = stamina > 0.5
+    if stamina <= 0.5 and player.is_sprinting:
+        player.is_sprinting = false
     if is_instance_valid(stamina_label):
         stamina_label.text = "STAMINA  %d" % roundi(stamina)
         stamina_label.visible = not menu.visible and not game_over
