@@ -658,6 +658,8 @@ func _process(delta: float) -> void:
         enemy_health_label.text = "THREAT  %d%%" % roundi((enemy_health / enemy_max_health) * 100.0)
     if is_instance_valid(mission_complete_label):
         mission_complete_label.visible = mission_complete and not menu.visible and not game_over
+    if is_instance_valid(enemy_health_label) and not enemy_active:
+        enemy_health_label.visible = false
     if is_instance_valid(mobile_buttons.get("flashlight")):
         mobile_buttons["flashlight"].text = "LIGHT ON" if flashlight_on else "LIGHT"
 
