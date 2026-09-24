@@ -1,0 +1,15 @@
+{
+  "id": 1,
+  "chapter": 1,
+  "title": "THE FIRST NIGHT",
+  "status": "prototype",
+  "cinematic_before": true,
+  "objective": [
+    "Find supplies",
+    "Survive until dawn",
+    "Reach the safe zone"
+  ],
+  "content_pack": "mission_001",
+  "content_delivery": "external_pack",
+  "target_installed_size_gb": 2.0
+}
