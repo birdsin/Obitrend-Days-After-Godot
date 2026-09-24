@@ -1,0 +1,320 @@
+[gd_scene load_steps=22 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/player.gd" id="2_player"]
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 1
+background_color = Color(0.025, 0.035, 0.055, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.70, 0.76, 0.88, 1)
+ambient_light_energy = 1.15
+tonemap_mode = 2
+
+[sub_resource type="BoxMesh" id="GroundMesh"]
+size = Vector3(100, 0.2, 100)
+
+[sub_resource type="StandardMaterial3D" id="GroundMat"]
+albedo_color = Color(0.13, 0.15, 0.18, 1)
+roughness = 0.95
+
+[sub_resource type="BoxMesh" id="RoadMesh"]
+size = Vector3(28, 0.12, 48)
+
+[sub_resource type="StandardMaterial3D" id="RoadMat"]
+albedo_color = Color(0.045, 0.05, 0.06, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="SidewalkMesh"]
+size = Vector3(4, 0.18, 48)
+
+[sub_resource type="StandardMaterial3D" id="SidewalkMat"]
+albedo_color = Color(0.32, 0.35, 0.39, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BuildingA"]
+size = Vector3(9, 14, 9)
+
+[sub_resource type="StandardMaterial3D" id="BuildingAMat"]
+albedo_color = Color(0.28, 0.34, 0.45, 1)
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="BuildingB"]
+size = Vector3(8, 20, 8)
+
+[sub_resource type="StandardMaterial3D" id="BuildingBMat"]
+albedo_color = Color(0.20, 0.27, 0.39, 1)
+roughness = 0.58
+
+[sub_resource type="BoxMesh" id="BuildingC"]
+size = Vector3(12, 28, 10)
+
+[sub_resource type="StandardMaterial3D" id="BuildingCMat"]
+albedo_color = Color(0.15, 0.21, 0.31, 1)
+roughness = 0.55
+
+[sub_resource type="BoxMesh" id="WindowMesh"]
+size = Vector3(6.5, 0.32, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="WindowMat"]
+albedo_color = Color(0.86, 0.75, 0.40, 1)
+emission_enabled = true
+emission = Color(0.22, 0.18, 0.07, 1)
+emission_energy_multiplier = 1.6
+
+[sub_resource type="BoxMesh" id="LaneMesh"]
+size = Vector3(0.35, 0.08, 2.0)
+
+[sub_resource type="StandardMaterial3D" id="LaneMat"]
+albedo_color = Color(0.86, 0.72, 0.38, 1)
+emission_enabled = true
+emission = Color(0.12, 0.08, 0.02, 1)
+
+[sub_resource type="CapsuleShape3D" id="PlayerShape"]
+radius = 0.45
+height = 1.8
+
+[sub_resource type="CapsuleMesh" id="PlayerMesh"]
+radius = 0.45
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="PlayerMat"]
+albedo_color = Color(0.10, 0.11, 0.13, 1)
+roughness = 0.55
+
+[sub_resource type="StyleBoxFlat" id="PanelStyle"]
+bg_color = Color(0.035, 0.045, 0.065, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.82, 0.65, 0.25, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_main")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-52, -25, 0)
+light_energy = 1.6
+shadow_enabled = true
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.15, -8)
+mesh = SubResource("GroundMesh")
+material_override = SubResource("GroundMat")
+
+[node name="Road" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.01, -9)
+mesh = SubResource("RoadMesh")
+material_override = SubResource("RoadMat")
+
+[node name="SidewalkLeft" type="MeshInstance3D" parent="."]
+position = Vector3(-16, 0.12, -9)
+mesh = SubResource("SidewalkMesh")
+material_override = SubResource("SidewalkMat")
+
+[node name="SidewalkRight" type="MeshInstance3D" parent="."]
+position = Vector3(16, 0.12, -9)
+mesh = SubResource("SidewalkMesh")
+material_override = SubResource("SidewalkMat")
+
+[node name="City" type="Node3D" parent="."]
+
+[node name="BuildingLeft" type="MeshInstance3D" parent="City"]
+position = Vector3(-10, 7, -7)
+mesh = SubResource("BuildingA")
+material_override = SubResource("BuildingAMat")
+
+[node name="BuildingCenter" type="MeshInstance3D" parent="City"]
+position = Vector3(0, 10, -17)
+mesh = SubResource("BuildingB")
+material_override = SubResource("BuildingBMat")
+
+[node name="BuildingRight" type="MeshInstance3D" parent="City"]
+position = Vector3(10, 7, -8)
+mesh = SubResource("BuildingA")
+material_override = SubResource("BuildingAMat")
+
+[node name="TowerFar" type="MeshInstance3D" parent="City"]
+position = Vector3(0, 14, -30)
+mesh = SubResource("BuildingC")
+material_override = SubResource("BuildingCMat")
+
+[node name="WindowsLeft1" type="MeshInstance3D" parent="City"]
+position = Vector3(-10, 2.0, -2.47)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+[node name="WindowsLeft2" type="MeshInstance3D" parent="City"]
+position = Vector3(-10, 4.2, -2.47)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+[node name="WindowsLeft3" type="MeshInstance3D" parent="City"]
+position = Vector3(-10, 6.4, -2.47)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+[node name="WindowsLeft4" type="MeshInstance3D" parent="City"]
+position = Vector3(-10, 8.6, -2.47)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+[node name="WindowsLeft5" type="MeshInstance3D" parent="City"]
+position = Vector3(-10, 10.8, -2.47)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+
+[node name="WindowsRight1" type="MeshInstance3D" parent="City"]
+position = Vector3(10, 2.0, -3.47)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+[node name="WindowsRight2" type="MeshInstance3D" parent="City"]
+position = Vector3(10, 4.2, -3.47)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+[node name="WindowsRight3" type="MeshInstance3D" parent="City"]
+position = Vector3(10, 6.4, -3.47)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+[node name="WindowsRight4" type="MeshInstance3D" parent="City"]
+position = Vector3(10, 8.6, -3.47)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+[node name="WindowsRight5" type="MeshInstance3D" parent="City"]
+position = Vector3(10, 10.8, -3.47)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+
+[node name="WindowsCenter1" type="MeshInstance3D" parent="City"]
+position = Vector3(0, 4.0, -12.97)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+[node name="WindowsCenter2" type="MeshInstance3D" parent="City"]
+position = Vector3(0, 7.0, -12.97)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+[node name="WindowsCenter3" type="MeshInstance3D" parent="City"]
+position = Vector3(0, 10.0, -12.97)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+[node name="WindowsCenter4" type="MeshInstance3D" parent="City"]
+position = Vector3(0, 13.0, -12.97)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+[node name="WindowsCenter5" type="MeshInstance3D" parent="City"]
+position = Vector3(0, 16.0, -12.97)
+mesh = SubResource("WindowMesh")
+material_override = SubResource("WindowMat")
+
+[node name="Lane1" type="MeshInstance3D" parent="City"]
+position = Vector3(0, 0.09, 0)
+mesh = SubResource("LaneMesh")
+material_override = SubResource("LaneMat")
+[node name="Lane2" type="MeshInstance3D" parent="City"]
+position = Vector3(0, 0.09, -5)
+mesh = SubResource("LaneMesh")
+material_override = SubResource("LaneMat")
+[node name="Lane3" type="MeshInstance3D" parent="City"]
+position = Vector3(0, 0.09, -10)
+mesh = SubResource("LaneMesh")
+material_override = SubResource("LaneMat")
+[node name="Lane4" type="MeshInstance3D" parent="City"]
+position = Vector3(0, 0.09, -15)
+mesh = SubResource("LaneMesh")
+material_override = SubResource("LaneMat")
+[node name="Lane5" type="MeshInstance3D" parent="City"]
+position = Vector3(0, 0.09, -20)
+mesh = SubResource("LaneMesh")
+material_override = SubResource("LaneMat")
+
+[node name="Player" type="CharacterBody3D" parent="."]
+position = Vector3(0, 1, 8)
+script = ExtResource("2_player")
+
+[node name="Collision" type="CollisionShape3D" parent="Player"]
+shape = SubResource("PlayerShape")
+
+[node name="Mesh" type="MeshInstance3D" parent="Player"]
+position = Vector3(0, 0.9, 0)
+mesh = SubResource("PlayerMesh")
+material_override = SubResource("PlayerMat")
+
+[node name="CameraRig" type="Node3D" parent="Player"]
+position = Vector3(0, 3.8, 10.5)
+
+[node name="Camera3D" type="Camera3D" parent="Player/CameraRig"]
+current = true
+fov = 72
+near = 0.05
+far = 500.0
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Title" type="Label" parent="HUD"]
+offset_left = 28.0
+offset_top = 24.0
+offset_right = 450.0
+offset_bottom = 70.0
+theme_override_colors/font_color = Color(0.9, 0.75, 0.36, 1)
+theme_override_font_sizes/font_size = 30
+text = "DAY'S AFTER"
+
+[node name="Hint" type="Label" parent="HUD"]
+offset_left = 30.0
+offset_top = 70.0
+offset_right = 600.0
+offset_bottom = 105.0
+theme_override_colors/font_color = Color(0.75, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 16
+text = "PHASE 1 • CITY TEST BUILD"
+
+[node name="Menu" type="Control" parent="HUD"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Panel" type="Panel" parent="HUD/Menu"]
+offset_left = 360.0
+offset_top = 180.0
+offset_right = 920.0
+offset_bottom = 540.0
+theme_override_styles/panel = SubResource("PanelStyle")
+
+[node name="Title" type="Label" parent="HUD/Menu/Panel"]
+offset_left = 40.0
+offset_top = 45.0
+offset_right = 520.0
+offset_bottom = 100.0
+theme_override_colors/font_color = Color(0.9, 0.75, 0.36, 1)
+theme_override_font_sizes/font_size = 42
+text = "DAY'S AFTER"
+
+[node name="Subtitle" type="Label" parent="HUD/Menu/Panel"]
+offset_left = 42.0
+offset_top = 105.0
+offset_right = 515.0
+offset_bottom = 145.0
+theme_override_colors/font_color = Color(0.75, 0.78, 0.85, 1)
+theme_override_font_sizes/font_size = 18
+text = "REALISTIC ANDROID 3D • PHASE 1"
+
+[node name="Start" type="Button" parent="HUD/Menu/Panel"]
+offset_left = 42.0
+offset_top = 190.0
+offset_right = 518.0
+offset_bottom = 260.0
+theme_override_font_sizes/font_size = 24
+text = "START GAME"
+
+[node name="Info" type="Label" parent="HUD/Menu/Panel"]
+offset_left = 42.0
+offset_top = 285.0
+offset_right = 515.0
+offset_bottom = 325.0
+theme_override_colors/font_color = Color(0.55, 0.58, 0.66, 1)
+text = "3D CITY • THIRD-PERSON • MOBILE READY"
