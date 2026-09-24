@@ -309,6 +309,16 @@ func _update_enemy(delta: float) -> void:
     if inside_building:
         return
     enemy_attack_cooldown = maxf(0.0, enemy_attack_cooldown - delta)
+    if enemy_active and is_instance_valid(enemy_root) and not inside_building:
+        var threat_direction := (enemy_root.global_position - player.global_position)
+        threat_direction.y = 0.0
+        if threat_direction.length() > 0.1:
+            var facing := -camera_rig.global_transform.basis.z
+            facing.y = 0.0
+            if facing.length() > 0.1:
+                var threat_angle := rad_to_deg(acos(clampf(facing.normalized().dot(threat_direction.normalized()), -1.0, 1.0)))
+                if is_instance_valid(mobile_buttons.get("attack")):
+                    mobile_buttons["attack"].modulate = Color(1.0, 0.35, 0.30, 1.0) if threat_angle < 65.0 else Color(1.0, 1.0, 1.0, 0.86)
     var target := player.global_position
     var offset := target - enemy_root.global_position
     offset.y = 0.0
