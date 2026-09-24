@@ -653,6 +653,10 @@ func _process(delta: float) -> void:
     _update_survival_hud()
     _update_stamina(delta)
 
+    if is_instance_valid(mobile_buttons.get("flashlight")):
+        mobile_buttons["flashlight"].visible = not menu.visible and not game_over
+        mobile_buttons["flashlight"].text = "LIGHT ON" if flashlight_on else "LIGHT"
+
     if health <= 0.0:
         _save_game()
         _handle_game_over()
