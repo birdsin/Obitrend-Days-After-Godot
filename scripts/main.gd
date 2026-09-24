@@ -117,6 +117,7 @@ func _continue_game() -> void:
     if not has_saved_game:
         _start_game()
         return
+    _reset_transient_game_state()
     _start_game()
 
 func _new_game() -> void:
