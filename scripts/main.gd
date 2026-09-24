@@ -73,6 +73,7 @@ func _ready() -> void:
     # frame-rate spikes while preserving the current visual quality.
     Engine.max_fps = 60
     Engine.physics_ticks_per_second = 60
+    DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
     camera.current = true
     camera_rig.rotation.x = camera_pitch
     camera_rig.rotation.y = camera_yaw
