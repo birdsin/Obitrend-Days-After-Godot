@@ -705,6 +705,8 @@ func _handle_game_over() -> void:
     if game_over:
         return
     game_over = true
+    has_saved_game = false
+    DirAccess.remove_absolute("user://days_after_save.json")
     player.clear_mobile_input()
     player.set_physics_process(false)
     mobile_controls.visible = false
