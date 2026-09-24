@@ -54,6 +54,7 @@ var flashlight: SpotLight3D
 var flashlight_on := false
 var enemy_health_label: Label
 var night_threat_spawned := false
+var dawn_message_active := false
 
 func _ready() -> void:
     camera.current = true
@@ -608,10 +609,12 @@ func _process(delta: float) -> void:
         night_threat_spawned = false
         enemy_active = false
         enemy_root.visible = false
+        dawn_message_active = true
         transition_label.text = "DAWN  •  NIGHT SURVIVED"
         transition_label.visible = true
         _save_game()
         await get_tree().create_timer(1.5).timeout
+        dawn_message_active = false
         if not game_over:
             transition_label.visible = false
     _update_world_lighting()
