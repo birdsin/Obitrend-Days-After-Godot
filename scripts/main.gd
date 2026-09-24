@@ -141,6 +141,9 @@ func _new_game() -> void:
     mission_complete = false
     night_threat_spawned = false
     dawn_message_active = false
+    enemy_health = enemy_max_health
+    enemy_attack_cooldown = 0.0
+    flashlight_on = false
     save_elapsed = 0.0
     search_completed = false
     DirAccess.remove_absolute("user://days_after_save.json")
