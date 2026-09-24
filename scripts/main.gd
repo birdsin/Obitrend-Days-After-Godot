@@ -147,7 +147,12 @@ func _new_game() -> void:
     dawn_message_active = false
     enemy_health = enemy_max_health
     enemy_attack_cooldown = 0.0
+    enemy_active = false
     flashlight_on = false
+    if is_instance_valid(enemy_root):
+        enemy_root.visible = false
+    if is_instance_valid(flashlight):
+        flashlight.visible = false
     save_elapsed = 0.0
     search_completed = false
     DirAccess.remove_absolute("user://days_after_save.json")
