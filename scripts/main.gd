@@ -571,6 +571,7 @@ func _start_game() -> void:
     transition_label.visible = false
     game_over = false
     if not has_saved_game:
+        _reset_transient_game_state()
         health = 100.0
         hunger = 100.0
         survival_elapsed = 0.0
