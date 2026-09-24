@@ -8,7 +8,7 @@ const CONTENT_ROOT := "user://days_after_content"
 var loaded_packs: Dictionary = {}
 
 func _ready() -> void:
-    DirAccess.make_dir_recursive_absolute(CONTENT_ROOT)
+    DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(CONTENT_ROOT))
 
 func get_pack_path(pack_id: String) -> String:
     return CONTENT_ROOT.path_join("%s.pck" % pack_id)
