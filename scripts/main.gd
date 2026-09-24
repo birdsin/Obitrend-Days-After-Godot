@@ -575,6 +575,12 @@ func _start_game() -> void:
         food_count = 0
         water_count = 0
         world_time = 8.0
+        day_number = 1
+        stamina = 100.0
+        night_survived = false
+        night_threat_spawned = false
+        mission_complete = false
+        enemy_health = enemy_max_health
     else:
         survival_elapsed = (100.0 - hunger) / 0.45
         _update_world_lighting()
