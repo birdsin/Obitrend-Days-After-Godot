@@ -626,7 +626,14 @@ func _layout_mobile_controls() -> void:
     if mobile_buttons.has("flashlight"):
         mobile_buttons["flashlight"].position = Vector2(size.x - margin - 96.0, bottom - 72.0)
 
+func _reset_performance_monitor() -> void:
+    performance_sample_time = 0.0
+    performance_sample_frames = 0
+    performance_sample_fps = 0
+    performance_min_fps = 60
+
 func _start_game() -> void:
+    _reset_performance_monitor()
     game_over = false
     player.set_physics_process(true)
     mobile_controls.visible = true
