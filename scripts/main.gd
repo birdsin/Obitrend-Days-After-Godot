@@ -132,6 +132,10 @@ func _new_game() -> void:
     world_time = 8.0
     day_number = 1
     stamina = 100.0
+    player.global_position = Vector3(0, 1, 8)
+    camera_yaw = 0.0
+    camera_pitch = -0.18
+    camera_rig.rotation = Vector3(camera_pitch, camera_yaw, 0.0)
     night_survived = false
     last_world_time = 8.0
     mission_complete = false
