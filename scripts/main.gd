@@ -85,6 +85,26 @@ func _build_interaction_hud() -> void:
     mobile_buttons["interact"] = button
     button.visible = false
 
+    var use_food := Button.new()
+    use_food.name = "UseFood"
+    use_food.text = "EAT"
+    use_food.size = Vector2(86, 52)
+    use_food.focus_mode = Control.FOCUS_NONE
+    use_food.pressed.connect(_consume_food)
+    $HUD.add_child(use_food)
+    mobile_buttons["use_food"] = use_food
+    use_food.visible = false
+
+    var use_water := Button.new()
+    use_water.name = "UseWater"
+    use_water.text = "DRINK"
+    use_water.size = Vector2(86, 52)
+    use_water.focus_mode = Control.FOCUS_NONE
+    use_water.pressed.connect(_consume_water)
+    $HUD.add_child(use_water)
+    mobile_buttons["use_water"] = use_water
+    use_water.visible = false
+
     transition_label = Label.new()
     transition_label.name = "TransitionMessage"
     transition_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -110,7 +130,7 @@ func _build_survival_hud() -> void:
     inventory_label = Label.new()
     inventory_label.name = "Inventory"
     inventory_label.position = Vector2(24, 66)
-    inventory_label.size = Vector2(520, 42)
+    inventory_label.size = Vector2(620, 42)
     inventory_label.add_theme_font_size_override("font_size", 17)
     inventory_label.modulate = Color(0.9, 0.75, 0.36, 1)
     inventory_label.text = "SUPPLIES  0 / 1   FOOD  0   WATER  0"
@@ -170,6 +190,10 @@ func _layout_mobile_controls() -> void:
     mobile_buttons["sprint"].position = Vector2(size.x - margin - 82.0, bottom)
     if mobile_buttons.has("interact"):
         mobile_buttons["interact"].position = Vector2(size.x - margin - 120.0, bottom - 72.0)
+    if mobile_buttons.has("use_food"):
+        mobile_buttons["use_food"].position = Vector2(size.x - margin - 190.0, bottom - 144.0)
+    if mobile_buttons.has("use_water"):
+        mobile_buttons["use_water"].position = Vector2(size.x - margin - 96.0, bottom - 144.0)
 
 func _start_game() -> void:
     menu.visible = false
@@ -194,6 +218,10 @@ func _update_survival_hud() -> void:
     else:
         objective_label.text = "OBJECTIVE  •  Find supplies"
     status_label.text = "HEALTH  %d   HUNGER  %d" % [roundi(health), roundi(hunger)]
+    if mobile_buttons.has("use_food"):
+        mobile_buttons["use_food"].visible = food_count > 0 and hunger < 99.0 and not menu.visible and not game_over
+    if mobile_buttons.has("use_water"):
+        mobile_buttons["use_water"].visible = water_count > 0 and hunger < 99.0 and not menu.visible and not game_over
 
 func _process(delta: float) -> void:
     if menu.visible or game_over:
@@ -224,6 +252,8 @@ func _handle_game_over() -> void:
     mobile_controls.visible = false
     interaction_target = ""
     mobile_buttons["interact"].visible = false
+    mobile_buttons["use_food"].visible = false
+    mobile_buttons["use_water"].visible = false
     interact_label.visible = false
     transition_label.text = "YOU COLLAPSED\nPRESS ESC TO RETURN"
     transition_label.visible = true
@@ -349,6 +379,33 @@ func _take_water() -> void:
     transition_label.visible = true
     await get_tree().create_timer(0.9).timeout
     transition_label.visible = false
+
+func _consume_food() -> void:
+    if food_count <= 0 or game_over:
+        return
+    food_count -= 1
+    hunger = minf(100.0, hunger + 35.0)
+    _sync_survival_timer()
+    _update_survival_hud()
+    transition_label.text = "FOOD EATEN  •  HUNGER +35"
+    transition_label.visible = true
+    await get_tree().create_timer(0.9).timeout
+    transition_label.visible = false
+
+func _consume_water() -> void:
+    if water_count <= 0 or game_over:
+        return
+    water_count -= 1
+    hunger = minf(100.0, hunger + 20.0)
+    _sync_survival_timer()
+    _update_survival_hud()
+    transition_label.text = "WATER DRANK  •  HUNGER +20"
+    transition_label.visible = true
+    await get_tree().create_timer(0.9).timeout
+    transition_label.visible = false
+
+func _sync_survival_timer() -> void:
+    survival_elapsed = (100.0 - hunger) / 0.45
 
 func _remove_pickup(mesh_name: String, body_name: String) -> void:
     var mesh := interior_root.get_node_or_null(mesh_name)
@@ -497,6 +554,12 @@ func _unhandled_input(event: InputEvent) -> void:
         if event.keycode == KEY_E:
             _interact()
             return
+        if event.keycode == KEY_F:
+            _consume_food()
+            return
+        if event.keycode == KEY_G:
+            _consume_water()
+            return
 
     if not menu.visible and event is InputEventScreenTouch:
         if event.pressed:
@@ -533,3 +596,5 @@ func _stop_game() -> void:
     interaction_target = ""
     interact_label.visible = false
     transition_label.visible = false
+    mobile_buttons["use_food"].visible = false
+    mobile_buttons["use_water"].visible = false
