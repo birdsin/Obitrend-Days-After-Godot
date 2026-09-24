@@ -1025,3 +1025,63 @@ func _stop_game() -> void:
     transition_label.visible = false
     mobile_buttons["use_food"].visible = false
     mobile_buttons["use_water"].visible = false
+
+
+func _save_game() -> void:
+    var data := {
+        "player_position": {
+            "x": player.global_position.x,
+            "y": player.global_position.y,
+            "z": player.global_position.z
+        },
+        "health": health,
+        "hunger": hunger,
+        "world_time": world_time,
+        "stamina": stamina,
+        "supplies_count": supplies_count,
+        "food_count": food_count,
+        "water_count": water_count,
+        "search_completed": search_completed,
+        "night_survived": night_survived,
+        "mission_complete": mission_complete
+    }
+    var file := FileAccess.open("user://days_after_save.json", FileAccess.WRITE)
+    if file:
+        file.store_string(JSON.stringify(data))
+        file.close()
+        has_saved_game = true
+
+func _load_game() -> bool:
+    if not FileAccess.file_exists("user://days_after_save.json"):
+        return false
+    var file := FileAccess.open("user://days_after_save.json", FileAccess.READ)
+    if file == null:
+        return false
+    var raw := file.get_as_text()
+    file.close()
+    var parsed = JSON.parse_string(raw)
+    if not (parsed is Dictionary):
+        return false
+
+    health = clampf(float(parsed.get("health", 100.0)), 0.0, 100.0)
+    hunger = clampf(float(parsed.get("hunger", 100.0)), 0.0, 100.0)
+    world_time = fmod(float(parsed.get("world_time", 8.0)), 24.0)
+    stamina = clampf(float(parsed.get("stamina", 100.0)), 0.0, 100.0)
+    supplies_count = int(parsed.get("supplies_count", 0))
+    food_count = int(parsed.get("food_count", 0))
+    water_count = int(parsed.get("water_count", 0))
+    search_completed = bool(parsed.get("search_completed", supplies_count >= 1))
+    night_survived = bool(parsed.get("night_survived", false))
+    mission_complete = bool(parsed.get("mission_complete", false))
+
+    var saved_position = parsed.get("player_position", {})
+    if saved_position is Dictionary:
+        player.global_position = Vector3(
+            float(saved_position.get("x", player.global_position.x)),
+            float(saved_position.get("y", player.global_position.y)),
+            float(saved_position.get("z", player.global_position.z))
+        )
+
+    last_world_time = world_time
+    has_saved_game = true
+    return true
