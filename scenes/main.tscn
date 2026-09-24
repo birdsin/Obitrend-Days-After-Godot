@@ -147,6 +147,28 @@ light_color = Color(0.90, 0.94, 1, 1)
 light_energy = 1.35
 shadow_enabled = true
 
+[node name="Ground" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.15, -8)
+mesh = SubResource("GroundMesh")
+material_override = SubResource("GroundMat")
+
+[node name="Road" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.01, -9)
+mesh = SubResource("RoadMesh")
+material_override = SubResource("RoadMat")
+
+[node name="SidewalkLeft" type="MeshInstance3D" parent="."]
+position = Vector3(-16, 0.12, -9)
+mesh = SubResource("SidewalkMesh")
+material_override = SubResource("SidewalkMat")
+
+[node name="SidewalkRight" type="MeshInstance3D" parent="."]
+position = Vector3(16, 0.12, -9)
+mesh = SubResource("SidewalkMesh")
+material_override = SubResource("SidewalkMat")
+
+[node name="City" type="Node3D" parent="."]
+
 [node name="StreetLightLeft" type="Node3D" parent="City"]
 position = Vector3(-12.8, 1.9, 2.5)
 
@@ -185,28 +207,6 @@ light_color = Color(1.0, 0.64, 0.28, 1)
 light_energy = 2.2
 omni_range = 8.0
 shadow_enabled = false
-
-[node name="Ground" type="MeshInstance3D" parent="."]
-position = Vector3(0, -0.15, -8)
-mesh = SubResource("GroundMesh")
-material_override = SubResource("GroundMat")
-
-[node name="Road" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0.01, -9)
-mesh = SubResource("RoadMesh")
-material_override = SubResource("RoadMat")
-
-[node name="SidewalkLeft" type="MeshInstance3D" parent="."]
-position = Vector3(-16, 0.12, -9)
-mesh = SubResource("SidewalkMesh")
-material_override = SubResource("SidewalkMat")
-
-[node name="SidewalkRight" type="MeshInstance3D" parent="."]
-position = Vector3(16, 0.12, -9)
-mesh = SubResource("SidewalkMesh")
-material_override = SubResource("SidewalkMat")
-
-[node name="City" type="Node3D" parent="."]
 
 [node name="BuildingLeft" type="MeshInstance3D" parent="City"]
 position = Vector3(-10, 7, -7)
