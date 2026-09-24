@@ -42,6 +42,7 @@ var enemy_root: Node3D
 var enemy_active := false
 var enemy_health := 100.0
 var enemy_attack_cooldown := 0.0
+var enemy_max_health := 100.0
 var stamina := 100.0
 var stamina_label: Label
 var safe_zone_root: Node3D
@@ -261,7 +262,7 @@ func _spawn_enemy() -> void:
     if not is_instance_valid(enemy_root):
         return
     enemy_root.global_position = player.global_position + Vector3(8.0, 0.0, -10.0)
-    enemy_health = 100.0
+    enemy_health = enemy_max_health
     enemy_attack_cooldown = 0.0
     enemy_active = true
     enemy_root.visible = true
@@ -308,7 +309,7 @@ func _attack_enemy() -> void:
         enemy_root.visible = false
         transition_label.text = "THREAT ELIMINATED"
     else:
-        transition_label.text = "HIT CONFIRMED  •  THREAT 50%"
+        transition_label.text = "HIT CONFIRMED  •  THREAT %d%%" % roundi((enemy_health / enemy_max_health) * 100.0)
     transition_label.visible = true
     await get_tree().create_timer(0.75).timeout
     if not game_over:
@@ -651,7 +652,7 @@ func _process(delta: float) -> void:
         mobile_buttons["attack"].visible = enemy_active and not inside_building and not game_over
     if is_instance_valid(enemy_health_label):
         enemy_health_label.visible = enemy_active and not inside_building and not game_over
-        enemy_health_label.text = "THREAT  %d%%" % roundi(enemy_health)
+        enemy_health_label.text = "THREAT  %d%%" % roundi((enemy_health / enemy_max_health) * 100.0)
 
 func _handle_game_over() -> void:
     if game_over:
