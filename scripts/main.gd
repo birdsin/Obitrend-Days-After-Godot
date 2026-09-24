@@ -1089,6 +1089,11 @@ func _stop_game() -> void:
         _save_game()
     has_saved_game = FileAccess.file_exists("user://days_after_save.json")
     menu.visible = true
+    if is_instance_valid(continue_button):
+        continue_button.visible = has_saved_game
+    var checkpoint_info := $HUD/Menu/Panel.get_node_or_null("CheckpointInfo") as Label
+    if is_instance_valid(checkpoint_info):
+        checkpoint_info.text = "CHECKPOINT AVAILABLE" if has_saved_game else "NO CHECKPOINT • NEW GAME STARTS FRESH"
     mobile_controls.visible = false
     objective_label.visible = false
     inventory_label.visible = false
