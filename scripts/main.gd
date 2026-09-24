@@ -58,6 +58,9 @@ var flashlight: SpotLight3D
 var flashlight_on := false
 var flashlight_flicker_time := 0.0
 var performance_fps_label: Label
+var performance_sample_time := 0.0
+var performance_sample_frames := 0
+var performance_sample_fps := 0
 var enemy_health_label: Label
 var night_threat_spawned := false
 var dawn_message_active := false
@@ -687,8 +690,14 @@ func _process(delta: float) -> void:
         Engine.max_fps = 60
     attack_feedback_time = maxf(0.0, attack_feedback_time - delta)
     _update_flashlight_flicker(delta)
+    performance_sample_time += delta
+    performance_sample_frames += 1
+    if performance_sample_time >= 0.5:
+        performance_sample_fps = roundi(float(performance_sample_frames) / performance_sample_time)
+        performance_sample_time = 0.0
+        performance_sample_frames = 0
     if is_instance_valid(performance_fps_label):
-        performance_fps_label.text = "FPS %d" % roundi(Engine.get_frames_per_second())
+        performance_fps_label.text = "FPS %d" % performance_sample_fps
     if enemy_hit_flash > 0.0:
         enemy_hit_flash = maxf(0.0, enemy_hit_flash - delta)
         if enemy_hit_flash <= 0.0 and is_instance_valid(enemy_root):
