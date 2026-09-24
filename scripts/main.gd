@@ -42,6 +42,7 @@ var enemy_root: Node3D
 var enemy_active := false
 var enemy_health := 100.0
 var enemy_attack_cooldown := 0.0
+var enemy_hit_flash := 0.0
 var enemy_max_health := 100.0
 var stamina := 100.0
 var stamina_label: Label
@@ -324,6 +325,8 @@ func _attack_enemy() -> void:
     if distance > 3.2:
         return
     enemy_health -= 50.0
+    enemy_hit_flash = 0.12
+    enemy_root.modulate = Color(1.8, 0.45, 0.45, 1.0)
     if enemy_health <= 0.0:
         enemy_active = false
         enemy_root.visible = false
@@ -621,6 +624,10 @@ func _update_survival_hud() -> void:
         mobile_buttons["use_water"].visible = water_count > 0 and hunger < 99.0 and not menu.visible and not game_over
 
 func _process(delta: float) -> void:
+    if enemy_hit_flash > 0.0:
+        enemy_hit_flash = maxf(0.0, enemy_hit_flash - delta)
+        if enemy_hit_flash <= 0.0 and is_instance_valid(enemy_root):
+            enemy_root.modulate = Color.WHITE
     if menu.visible or game_over:
         return
 
