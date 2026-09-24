@@ -14,11 +14,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify Godot
+        run: godot --version
+
       - name: Import project
         run: godot --headless --editor --path . --quit
 
-      - name: Export Android APK
-        run: mkdir -p build && godot --headless --path . --export-release "Android" build/DAYS_AFTER.apk
+      - name: Export Android debug APK
+        run: mkdir -p build && godot --headless --path . --export-debug "Android" build/DAYS_AFTER.apk
+
+      - name: Verify APK
+        run: test -s build/DAYS_AFTER.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
