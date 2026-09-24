@@ -1126,6 +1126,15 @@ func _add_interior_box(pos: Vector3, size: Vector3, color: Color) -> void:
     body.add_child(collision)
     interior_root.add_child(body)
 
+func _notification(what: int) -> void:
+    if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+        if menu.visible:
+            return
+        if game_over:
+            _stop_game()
+        else:
+            _stop_game()
+
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventKey and event.pressed:
         if event.keycode == KEY_ESCAPE:
