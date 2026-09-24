@@ -1016,6 +1016,21 @@ func _rotate_camera(relative: Vector2) -> void:
     camera_rig.rotation.x = camera_pitch
     camera_rig.rotation.y = camera_yaw
 
+func _reset_transient_game_state() -> void:
+    inside_building = false
+    interaction_target = ""
+    camera_touch_id = -1
+    flashlight_on = false
+    if is_instance_valid(flashlight):
+        flashlight.visible = false
+    if is_instance_valid(enemy_root):
+        enemy_active = false
+        enemy_root.visible = false
+    if is_instance_valid(transition_label):
+        transition_label.visible = false
+    if is_instance_valid(interact_label):
+        interact_label.visible = false
+
 func _stop_game() -> void:
     if inside_building:
         inside_building = false
