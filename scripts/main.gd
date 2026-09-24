@@ -326,6 +326,9 @@ func _update_enemy(delta: float) -> void:
     if distance > 35.0:
         enemy_active = false
         enemy_root.visible = false
+        enemy_health_label.visible = false
+        if is_instance_valid(mobile_buttons.get("attack")):
+            mobile_buttons["attack"].visible = false
 
 func _attack_enemy() -> void:
     if not enemy_active or not is_instance_valid(enemy_root) or inside_building or game_over:
