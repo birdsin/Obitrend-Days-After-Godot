@@ -53,6 +53,7 @@ var mission_complete := false
 var mission_complete_label: Label
 var flashlight: SpotLight3D
 var flashlight_on := false
+var flashlight_flicker_time := 0.0
 var enemy_health_label: Label
 var night_threat_spawned := false
 var dawn_message_active := false
@@ -193,6 +194,14 @@ func _build_flashlight() -> void:
     $HUD.add_child(button)
     mobile_buttons["flashlight"] = button
     button.visible = false
+
+func _update_flashlight_flicker(delta: float) -> void:
+    if not flashlight_on or not is_instance_valid(flashlight):
+        flashlight_flicker_time = 0.0
+        return
+    flashlight_flicker_time += delta
+    var flicker := 1.0 + sin(flashlight_flicker_time * 37.0) * 0.025
+    flashlight.energy = 3.2 * flicker
 
 func _toggle_flashlight() -> void:
     if menu.visible or game_over:
@@ -624,6 +633,7 @@ func _update_survival_hud() -> void:
         mobile_buttons["use_water"].visible = water_count > 0 and hunger < 99.0 and not menu.visible and not game_over
 
 func _process(delta: float) -> void:
+    _update_flashlight_flicker(delta)
     if enemy_hit_flash > 0.0:
         enemy_hit_flash = maxf(0.0, enemy_hit_flash - delta)
         if enemy_hit_flash <= 0.0 and is_instance_valid(enemy_root):
