@@ -117,6 +117,21 @@ func _ready() -> void:
     if is_instance_valid(checkpoint_info):
         checkpoint_info.text = "CHECKPOINT AVAILABLE" if has_saved_game else "NO CHECKPOINT • NEW GAME STARTS FRESH"
 
+func _input(event: InputEvent) -> void:
+    if not event is InputEventScreenTouch:
+        return
+    var touch := event as InputEventScreenTouch
+    if not touch.pressed:
+        return
+    if game_over or cinematic_active:
+        return
+    if not menu.visible:
+        return
+    var start := $HUD/Menu/Panel/Start as Button
+    if is_instance_valid(start) and start.get_global_rect().has_point(touch.position):
+        _new_game()
+        get_viewport().set_input_as_handled()
+
 func _build_performance_hud() -> void:
     performance_fps_label = Label.new()
     performance_fps_label.name = "PerformanceFPS"
