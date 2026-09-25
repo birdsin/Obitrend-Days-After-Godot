@@ -4,7 +4,6 @@ extends Node3D
 @onready var player: CharacterBody3D = $Player
 @onready var camera: Camera3D = $Player/CameraRig/Camera3D
 @onready var camera_rig: Node3D = $Player/CameraRig
-@onready var campaign_manager: Node = $CampaignManager
 
 var mobile_controls: Control
 var mobile_buttons: Dictionary = {}
@@ -69,7 +68,6 @@ var performance_hud_visible := true
 var enemy_health_label: Label
 var night_threat_spawned := false
 var dawn_message_active := false
-var cinematic_active := false
 
 func _ready() -> void:
     Engine.max_fps = 60
@@ -83,11 +81,12 @@ func _ready() -> void:
     start_button.mouse_filter = Control.MOUSE_FILTER_STOP
     start_button.disabled = false
     start_button.focus_mode = Control.FOCUS_NONE
-    start_button.pressed.connect(_new_game)
-    start_button.text = "NEW GAME"
+    if not start_button.pressed.is_connected(_new_game):
+        start_button.pressed.connect(_new_game)
+    start_button.text = "START GAME"
 
-    menu.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    $HUD/Menu/Panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    menu.mouse_filter = Control.MOUSE_FILTER_PASS
+    $HUD/Menu/Panel.mouse_filter = Control.MOUSE_FILTER_PASS
 
     _build_checkpoint_menu()
     _build_city_collisions()
@@ -103,7 +102,6 @@ func _ready() -> void:
     _build_enemy_health_hud()
     _build_performance_hud()
     _layout_mobile_controls()
-    campaign_manager.cinematic_finished.connect(_on_mission_intro_finished)
     _update_world_lighting()
     has_saved_game = _load_game()
     if has_saved_game:
@@ -118,17 +116,27 @@ func _ready() -> void:
         checkpoint_info.text = "CHECKPOINT AVAILABLE" if has_saved_game else "NO CHECKPOINT • NEW GAME STARTS FRESH"
 
 func _input(event: InputEvent) -> void:
-    if not event is InputEventScreenTouch:
+    if game_over or not menu.visible:
         return
-    var touch := event as InputEventScreenTouch
-    if not touch.pressed:
+
+    var pressed := false
+    var input_position := Vector2.ZERO
+
+    if event is InputEventScreenTouch:
+        var touch := event as InputEventScreenTouch
+        pressed = touch.pressed
+        input_position = touch.position
+    elif event is InputEventMouseButton:
+        var mouse := event as InputEventMouseButton
+        if mouse.button_index == MOUSE_BUTTON_LEFT:
+            pressed = mouse.pressed
+            input_position = mouse.position
+
+    if not pressed:
         return
-    if game_over or cinematic_active:
-        return
-    if not menu.visible:
-        return
+
     var start := $HUD/Menu/Panel/Start as Button
-    if is_instance_valid(start) and start.get_global_rect().has_point(touch.position):
+    if is_instance_valid(start) and not start.disabled and start.get_global_rect().has_point(input_position):
         _new_game()
         get_viewport().set_input_as_handled()
 
@@ -657,23 +665,22 @@ func _reset_performance_monitor() -> void:
 func _start_game() -> void:
     _reset_performance_monitor()
     game_over = false
-    cinematic_active = true
     player.clear_mobile_input()
-    player.set_physics_process(false)
+    player.set_physics_process(true)
     camera.current = true
     transition_label.visible = false
-    mobile_controls.visible = false
-    menu.visible = true
+    mobile_controls.visible = true
+    menu.visible = false
     $HUD/Title.visible = false
     $HUD/Hint.visible = false
-    objective_label.visible = false
-    inventory_label.visible = false
-    status_label.visible = false
-    time_label.visible = false
-    stamina_label.visible = false
-    mission_complete_label.visible = false
+    objective_label.visible = true
+    inventory_label.visible = true
+    status_label.visible = true
+    time_label.visible = true
+    stamina_label.visible = true
+    mission_complete_label.visible = mission_complete
     if mobile_buttons.has("flashlight"):
-        mobile_buttons["flashlight"].visible = false
+        mobile_buttons["flashlight"].visible = true
     if is_instance_valid(flashlight):
         flashlight_on = false
         flashlight.visible = false
@@ -701,26 +708,6 @@ func _start_game() -> void:
     if has_saved_game:
         enemy_active = false
         enemy_root.visible = false
-    campaign_manager.play_mission_intro(1)
-
-func _on_mission_intro_finished() -> void:
-    cinematic_active = false
-    if game_over:
-        return
-    menu.visible = false
-    mobile_controls.visible = true
-    objective_label.visible = true
-    inventory_label.visible = true
-    status_label.visible = true
-    time_label.visible = true
-    stamina_label.visible = true
-    mission_complete_label.visible = mission_complete
-    if mobile_buttons.has("flashlight"):
-        mobile_buttons["flashlight"].visible = true
-    player.clear_mobile_input()
-    player.set_physics_process(true)
-    camera.current = true
-    _update_survival_hud()
 
 func _update_survival_hud() -> void:
     inventory_label.text = "SUPPLIES  %d / 1   FOOD  %d   WATER  %d" % [supplies_count, food_count, water_count]
@@ -761,7 +748,7 @@ func _process(delta: float) -> void:
         enemy_hit_flash = maxf(0.0, enemy_hit_flash - delta)
         if enemy_hit_flash <= 0.0 and is_instance_valid(enemy_root):
             enemy_root.modulate = Color.WHITE
-    if menu.visible or game_over or cinematic_active:
+    if menu.visible or game_over:
         return
 
     survival_elapsed += delta
