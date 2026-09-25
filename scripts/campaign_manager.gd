@@ -34,6 +34,27 @@ func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
     _build_overlay()
 
+func _input(event: InputEvent) -> void:
+    # Android can deliver the first tap through the CanvasLayer before the
+    # Button receives a pressed signal. Keep a direct fallback for the menu.
+    if cinematic_active or not event is InputEventScreenTouch:
+        return
+    var touch := event as InputEventScreenTouch
+    if not touch.pressed:
+        return
+    var main := get_parent() as Node
+    if not is_instance_valid(main):
+        return
+    var menu := main.get_node_or_null("HUD/Menu") as Control
+    if not is_instance_valid(menu) or not menu.visible:
+        return
+    var start := main.get_node_or_null("HUD/Menu/Panel/Start") as Button
+    if not is_instance_valid(start) or start.disabled:
+        return
+    if start.get_global_rect().has_point(touch.position):
+        main.call("_new_game")
+        get_viewport().set_input_as_handled()
+
 func _build_overlay() -> void:
     overlay = Control.new()
     overlay.name = "CinematicOverlay"
@@ -69,6 +90,7 @@ func _build_overlay() -> void:
     chapter_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     chapter_label.add_theme_font_size_override("font_size", 18)
     chapter_label.modulate = Color(0.78, 0.68, 0.42, 1.0)
+    chapter_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     overlay.add_child(chapter_label)
 
     title_label = Label.new()
@@ -78,6 +100,7 @@ func _build_overlay() -> void:
     title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
     title_label.add_theme_font_size_override("font_size", 44)
     title_label.modulate = Color(0.95, 0.95, 0.95, 1.0)
+    title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     overlay.add_child(title_label)
 
     briefing_label = Label.new()
@@ -88,6 +111,7 @@ func _build_overlay() -> void:
     briefing_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     briefing_label.add_theme_font_size_override("font_size", 22)
     briefing_label.modulate = Color(0.76, 0.79, 0.86, 1.0)
+    briefing_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     overlay.add_child(briefing_label)
 
     progress_label = Label.new()
@@ -96,6 +120,7 @@ func _build_overlay() -> void:
     progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     progress_label.add_theme_font_size_override("font_size", 15)
     progress_label.modulate = Color(0.62, 0.65, 0.72, 1.0)
+    progress_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
     overlay.add_child(progress_label)
 
     skip_button = Button.new()
@@ -103,6 +128,7 @@ func _build_overlay() -> void:
     skip_button.size = Vector2(120, 48)
     skip_button.text = "SKIP"
     skip_button.focus_mode = Control.FOCUS_NONE
+    skip_button.mouse_filter = Control.MOUSE_FILTER_STOP
     skip_button.add_theme_font_size_override("font_size", 15)
     skip_button.pressed.connect(skip_cinematic)
     overlay.add_child(skip_button)
