@@ -72,16 +72,23 @@ var dawn_message_active := false
 var cinematic_active := false
 
 func _ready() -> void:
-    # Android 12 GB target: keep a stable 60 FPS ceiling and avoid unnecessary
-    # frame-rate spikes while preserving the current visual quality.
     Engine.max_fps = 60
     Engine.physics_ticks_per_second = 60
     DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
     camera.current = true
     camera_rig.rotation.x = camera_pitch
     camera_rig.rotation.y = camera_yaw
-    $HUD/Menu/Panel/Start.pressed.connect(_new_game)
-    $HUD/Menu/Panel/Start.text = "NEW GAME"
+
+    var start_button := $HUD/Menu/Panel/Start as Button
+    start_button.mouse_filter = Control.MOUSE_FILTER_STOP
+    start_button.disabled = false
+    start_button.focus_mode = Control.FOCUS_NONE
+    start_button.pressed.connect(_new_game)
+    start_button.text = "NEW GAME"
+
+    menu.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    $HUD/Menu/Panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
     _build_checkpoint_menu()
     _build_city_collisions()
     _build_mobile_controls()
@@ -128,6 +135,7 @@ func _build_checkpoint_menu() -> void:
     continue_button.size = Vector2(476, 70)
     continue_button.text = "CONTINUE"
     continue_button.focus_mode = Control.FOCUS_NONE
+    continue_button.mouse_filter = Control.MOUSE_FILTER_STOP
     continue_button.add_theme_font_size_override("font_size", 24)
     continue_button.pressed.connect(_continue_game)
     $HUD/Menu/Panel.add_child(continue_button)
@@ -136,6 +144,7 @@ func _build_checkpoint_menu() -> void:
     new_game_button.position = Vector2(42, 275)
     new_game_button.size = Vector2(476, 62)
     new_game_button.add_theme_font_size_override("font_size", 22)
+    new_game_button.mouse_filter = Control.MOUSE_FILTER_STOP
 
     var checkpoint_info := Label.new()
     checkpoint_info.name = "CheckpointInfo"
@@ -144,6 +153,7 @@ func _build_checkpoint_menu() -> void:
     checkpoint_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     checkpoint_info.add_theme_font_size_override("font_size", 15)
     checkpoint_info.modulate = Color(0.55, 0.58, 0.66, 1)
+    checkpoint_info.mouse_filter = Control.MOUSE_FILTER_IGNORE
     checkpoint_info.text = "CHECKPOINT AVAILABLE" if has_saved_game else "NO CHECKPOINT • NEW GAME STARTS FRESH"
     $HUD/Menu/Panel.add_child(checkpoint_info)
 
@@ -251,7 +261,8 @@ func _toggle_flashlight() -> void:
 func _build_mission_complete_hud() -> void:
     mission_complete_label = Label.new()
     mission_complete_label.name = "MissionComplete"
-    mission_complete_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)    mission_complete_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    mission_complete_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    mission_complete_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
     mission_complete_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
     mission_complete_label.add_theme_font_size_override("font_size", 34)
     mission_complete_label.modulate = Color(0.72, 1.0, 0.80, 1)
@@ -513,9 +524,9 @@ func _build_survival_hud() -> void:
     status_label = Label.new()
     status_label.name = "Status"
     status_label.position = Vector2(24, 108)
-    status_label.size = Vector2(620, 42)
-    status_label.add_theme_font_size_override("font_size", 16)
-    status_label.modulate = Color(0.86, 0.86, 0.86, 1)
+    status_label.size = Vector2(620, 38)
+    status_label.add_theme_font_size_override("font_size", 17)
+    status_label.modulate = Color(0.75, 0.78, 0.85, 1)
     status_label.text = "HEALTH  100   HUNGER  100"
     status_label.visible = false
     $HUD.add_child(status_label)
@@ -523,48 +534,38 @@ func _build_survival_hud() -> void:
 func _build_stamina_hud() -> void:
     stamina_label = Label.new()
     stamina_label.name = "Stamina"
-    stamina_label.position = Vector2(24, 188)
-    stamina_label.size = Vector2(300, 34)
-    stamina_label.add_theme_font_size_override("font_size", 15)
-    stamina_label.modulate = Color(0.72, 0.74, 0.80, 1)
+    stamina_label.position = Vector2(24, 146)
+    stamina_label.size = Vector2(620, 38)
+    stamina_label.add_theme_font_size_override("font_size", 17)
+    stamina_label.modulate = Color(0.55, 0.72, 0.92, 1)
     stamina_label.text = "STAMINA  100"
     stamina_label.visible = false
     $HUD.add_child(stamina_label)
 
-func _update_stamina(delta: float) -> void:
-    var sprinting: bool = player.is_sprinting
-    if sprinting and stamina > 0.0:
-        stamina = maxf(0.0, stamina - delta * 28.0)
-    else:
-        stamina = minf(100.0, stamina + delta * 18.0)
-    player.sprint_allowed = stamina > 0.5
-    if stamina <= 0.5 and player.is_sprinting:
-        player.is_sprinting = false
-    if is_instance_valid(stamina_label):
-        stamina_label.text = "STAMINA  %d" % roundi(stamina)
-        stamina_label.visible = not menu.visible and not game_over
-
 func _build_time_hud() -> void:
     time_label = Label.new()
-    time_label.name = "WorldTime"
-    time_label.position = Vector2(24, 150)
-    time_label.size = Vector2(300, 38)
-    time_label.add_theme_font_size_override("font_size", 15)
-    time_label.modulate = Color(0.72, 0.74, 0.80, 1)
-    time_label.text = "DAY %d  •  08:00  •  MORNING" % day_number
+    time_label.name = "Time"
+    time_label.position = Vector2(0, 24)
+    time_label.size = Vector2(1280, 38)
+    time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+    time_label.add_theme_font_size_override("font_size", 17)
+    time_label.modulate = Color(0.75, 0.78, 0.85, 1)
+    time_label.text = "DAY 1  •  08:00  •  MORNING"
     time_label.visible = false
     $HUD.add_child(time_label)
 
 func _update_world_lighting() -> void:
-    var sun := get_node_or_null("Sun") as DirectionalLight3D
-    var environment: Environment = $WorldEnvironment.environment
     var cycle := fmod(world_time, 24.0)
     var daylight := 0.0
     if cycle >= 6.0 and cycle < 18.0:
-        daylight = sin((cycle - 6.0) / 12.0 * PI)
-    if is_instance_valid(sun):
-        sun.rotation_degrees = Vector3(-18.0 - daylight * 52.0, -25.0, 0.0)
-        sun.light_energy = 0.18 + daylight * 1.42
+        daylight = sin(((cycle - 6.0) / 12.0) * PI)
+    else:
+        daylight = 0.0
+    var sun := $Sun as DirectionalLight3D
+    sun.light_energy = 0.20 + daylight * 1.42
+    if is_instance_valid(performance_fps_label):
+        performance_fps_label.modulate = Color(0.72, 0.78, 0.86, 0.72)
+    var environment := $WorldEnvironment.environment as Environment
     if environment:
         environment.ambient_light_energy = 0.32 + daylight * 0.83
         environment.background_color = Color(0.018 + daylight * 0.045, 0.025 + daylight * 0.055, 0.045 + daylight * 0.10, 1.0)
