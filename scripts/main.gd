@@ -109,6 +109,8 @@ func _ready() -> void:
     _layout_mobile_controls()
     _update_world_lighting()
     has_saved_game = _load_game()
+    if campaign_mission == 2 and is_instance_valid(mission_two_root):
+        mission_two_root.visible = true
     if has_saved_game:
         _update_world_lighting()
     var original_info := $HUD/Menu/Panel.get_node_or_null("Info") as Label
