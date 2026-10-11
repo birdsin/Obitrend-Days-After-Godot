@@ -74,6 +74,31 @@ var radio_contact_restored := false
 var mission_two_root: Node3D
 var mission_feedback_time := 0.0
 
+func _on_start_button_pressed() -> void:
+    # Route the actual Button.pressed signal through a single deferred transition.
+    if menu.visible and not game_over:
+        transition_label.text = "START PRESSED"
+        transition_label.visible = true
+        call_deferred("_new_game")
+
+
+func _on_start_button_gui_input(event: InputEvent) -> void:
+    # Direct GUI touch handling is independent of global touch-coordinate hit tests.
+    if event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
+        if menu.visible and not game_over:
+            transition_label.text = "BUTTON TOUCH RECEIVED"
+            transition_label.visible = true
+            call_deferred("_new_game")
+            get_viewport().set_input_as_handled()
+    elif event is InputEventMouseButton:
+        var mouse := event as InputEventMouseButton
+        if mouse.button_index == MOUSE_BUTTON_LEFT and mouse.pressed and menu.visible and not game_over:
+            transition_label.text = "BUTTON CLICK RECEIVED"
+            transition_label.visible = true
+            call_deferred("_new_game")
+            get_viewport().set_input_as_handled()
+
+
 func _ready() -> void:
     Engine.max_fps = 60
     Engine.physics_ticks_per_second = 60
@@ -86,8 +111,10 @@ func _ready() -> void:
     start_button.mouse_filter = Control.MOUSE_FILTER_STOP
     start_button.disabled = false
     start_button.focus_mode = Control.FOCUS_NONE
-    if not start_button.pressed.is_connected(_new_game):
-        start_button.pressed.connect(_new_game)
+    if not start_button.pressed.is_connected(_on_start_button_pressed):
+        start_button.pressed.connect(_on_start_button_pressed)
+    if not start_button.gui_input.is_connected(_on_start_button_gui_input):
+        start_button.gui_input.connect(_on_start_button_gui_input)
     start_button.text = "START GAME"
 
     # Let touch events reach the actual buttons on Android. The full-screen
