@@ -806,7 +806,7 @@ func _process(delta: float) -> void:
     if next_world_time >= 24.0:
         day_number += int(floor(next_world_time / 24.0))
     world_time = fmod(next_world_time, 24.0)
-    if supplies_count >= 1 and not night_survived and last_world_time >= 18.0 and world_time < 6.0:
+    if campaign_mission == 1 and supplies_count >= 1 and not night_survived and last_world_time >= 18.0 and world_time < 6.0:
         night_survived = true
         night_threat_spawned = false
         enemy_active = false
