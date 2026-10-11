@@ -140,64 +140,6 @@ func _input(event: InputEvent) -> void:
         _new_game()
         get_viewport().set_input_as_handled()
 
-
-func _notification(what: int) -> void:
-    if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-        if menu.visible:
-            get_tree().quit()
-            return
-        _stop_game()
-    elif what == NOTIFICATION_APPLICATION_PAUSED:
-        if android_pause_autosave and not menu.visible and not game_over:
-            player.clear_mobile_input()
-            _save_game()
-    elif what == NOTIFICATION_APPLICATION_RESUMED:
-        if not menu.visible and not game_over:
-            player.clear_mobile_input()
-
-func _unhandled_input(event: InputEvent) -> void:
-    if event is InputEventKey and event.pressed and not event.echo:
-        if event.keycode == KEY_ESCAPE:
-            if not menu.visible or game_over:
-                _stop_game()
-            else:
-                get_tree().quit()
-            get_viewport().set_input_as_handled()
-            return
-        if game_over:
-            return
-        if event.keycode == KEY_E:
-            _interact()
-            get_viewport().set_input_as_handled()
-            return
-        if event.keycode == KEY_F:
-            _consume_food()
-            get_viewport().set_input_as_handled()
-            return
-        if event.keycode == KEY_G:
-            _consume_water()
-            get_viewport().set_input_as_handled()
-            return
-        if event.keycode == KEY_H:
-            _attack_enemy()
-            get_viewport().set_input_as_handled()
-            return
-        if event.keycode == KEY_L:
-            _toggle_flashlight()
-            get_viewport().set_input_as_handled()
-            return
-
-    if not menu.visible and not game_over and event is InputEventScreenTouch:
-        if event.pressed:
-            if event.position.x > get_viewport().get_visible_rect().size.x * 0.38:
-                camera_touch_id = event.index
-        elif event.index == camera_touch_id:
-            camera_touch_id = -1
-        return
-
-    if not menu.visible and not game_over and event is InputEventScreenDrag and event.index == camera_touch_id:
-        _rotate_camera(event.relative)
-
 func _build_performance_hud() -> void:
     performance_fps_label = Label.new()
     performance_fps_label.name = "PerformanceFPS"
@@ -1230,27 +1172,38 @@ func _notification(what: int) -> void:
             player.clear_mobile_input()
 
 func _unhandled_input(event: InputEvent) -> void:
-    if event is InputEventKey and event.pressed:
+    if event is InputEventKey and event.pressed and not event.echo:
         if event.keycode == KEY_ESCAPE:
-            _stop_game()
+            if not menu.visible or game_over:
+                _stop_game()
+            else:
+                get_tree().quit()
+            get_viewport().set_input_as_handled()
+            return
+        if game_over:
             return
         if event.keycode == KEY_E:
             _interact()
+            get_viewport().set_input_as_handled()
             return
         if event.keycode == KEY_F:
             _consume_food()
+            get_viewport().set_input_as_handled()
             return
         if event.keycode == KEY_G:
             _consume_water()
+            get_viewport().set_input_as_handled()
             return
         if event.keycode == KEY_H:
             _attack_enemy()
+            get_viewport().set_input_as_handled()
             return
         if event.keycode == KEY_L:
             _toggle_flashlight()
+            get_viewport().set_input_as_handled()
             return
 
-    if not menu.visible and event is InputEventScreenTouch:
+    if not menu.visible and not game_over and event is InputEventScreenTouch:
         if event.pressed:
             if event.position.x > get_viewport().get_visible_rect().size.x * 0.38:
                 camera_touch_id = event.index
@@ -1258,7 +1211,7 @@ func _unhandled_input(event: InputEvent) -> void:
             camera_touch_id = -1
         return
 
-    if not menu.visible and event is InputEventScreenDrag and event.index == camera_touch_id:
+    if not menu.visible and not game_over and event is InputEventScreenDrag and event.index == camera_touch_id:
         _rotate_camera(event.relative)
 
 func _rotate_camera(relative: Vector2) -> void:
