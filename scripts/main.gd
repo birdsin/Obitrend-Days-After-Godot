@@ -420,7 +420,9 @@ func _update_enemy(delta: float) -> void:
         await get_tree().create_timer(0.65).timeout
         if not game_over:
             transition_label.visible = false
-    if distance > 35.0:
+    # Mission 1 keeps its original far-distance cleanup. Mission 2's night threat
+    # must keep pursuing instead of silently despawning and leaving the encounter stuck.
+    if distance > 35.0 and campaign_mission == 1:
         enemy_active = false
         enemy_root.visible = false
         enemy_health_label.visible = false
