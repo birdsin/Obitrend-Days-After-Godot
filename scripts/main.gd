@@ -780,6 +780,19 @@ func _start_game() -> void:
             if campaign_mission == 2 or supplies_count >= 1:
                 _spawn_enemy()
 
+    # A completed Mission 2 save opens a clear results state, not live controls.
+    if campaign_mission == 2 and mission_complete:
+        mission_complete_label.text = "MISSION 02 COMPLETE\nRESCUE SIGNAL SENT"
+        mission_complete_label.visible = true
+        mobile_controls.visible = false
+        stamina_label.visible = false
+        interact_label.visible = false
+        for button_name in ["flashlight", "attack", "interact", "use_food", "use_water"]:
+            if mobile_buttons.has(button_name) and is_instance_valid(mobile_buttons[button_name]):
+                mobile_buttons[button_name].visible = false
+        if is_instance_valid(enemy_health_label):
+            enemy_health_label.visible = false
+
 func _update_survival_hud() -> void:
     inventory_label.text = "SUPPLIES  %d / 1   FOOD  %d   WATER  %d" % [supplies_count, food_count, water_count]
     # Mission 2 owns its objective text and live target distance; don't overwrite it
