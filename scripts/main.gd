@@ -139,11 +139,13 @@ func _input(event: InputEvent) -> void:
 
     var pressed := false
     var input_position := Vector2.ZERO
+    var is_touch := false
 
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
         pressed = touch.pressed
         input_position = touch.position
+        is_touch = true
     elif event is InputEventMouseButton:
         var mouse := event as InputEventMouseButton
         if mouse.button_index == MOUSE_BUTTON_LEFT:
@@ -154,7 +156,21 @@ func _input(event: InputEvent) -> void:
         return
 
     var start := $HUD/Menu/Panel/Start as Button
-    if is_instance_valid(start) and not start.disabled and start.get_global_rect().has_point(input_position):
+    var continue_rect := Rect2()
+    if is_instance_valid(continue_button) and continue_button.visible:
+        continue_rect = continue_button.get_global_rect()
+    var start_hit := is_instance_valid(start) and not start.disabled and start.get_global_rect().has_point(input_position)
+    var continue_hit := is_instance_valid(continue_button) and continue_button.visible and continue_rect.has_point(input_position)
+
+    if continue_hit:
+        _continue_game()
+        get_viewport().set_input_as_handled()
+        return
+
+    if start_hit or (is_touch and not has_saved_game):
+        # Android touch coordinates can differ from GUI hit-test coordinates on
+        # letterboxed landscape exports. With no checkpoint, any menu tap safely
+        # starts a fresh game instead of leaving the player trapped on this screen.
         _new_game()
         get_viewport().set_input_as_handled()
 
