@@ -1409,23 +1409,85 @@ func _create_mission_marker(marker_name: String, pos: Vector3, size: Vector3, co
     marker.name = marker_name
     marker.position = pos
     mission_two_root.add_child(marker)
+
     var mesh := MeshInstance3D.new()
+    mesh.name = "PrimaryProp"
     var box := BoxMesh.new()
     box.size = size
     mesh.mesh = box
     var material := StandardMaterial3D.new()
     material.albedo_color = color
+    material.roughness = 0.78
     material.emission_enabled = true
     material.emission = color * 0.22
     mesh.material_override = material
     marker.add_child(mesh)
+
+    # Give every objective a recognizable silhouette instead of a plain marker cube.
+    if marker_name == "RadioBattery":
+        mesh.position.y = 0.10
+        _add_mission_prop_box(marker, "BatteryTop", Vector3(0.34, 0.12, 0.25), Vector3(0.0, 0.39, 0.0), Color(0.18, 0.19, 0.20))
+        _add_mission_prop_box(marker, "BatteryTerminalA", Vector3(0.10, 0.08, 0.10), Vector3(-0.16, 0.49, 0.0), Color(0.78, 0.78, 0.70))
+        _add_mission_prop_box(marker, "BatteryTerminalB", Vector3(0.10, 0.08, 0.10), Vector3(0.16, 0.49, 0.0), Color(0.78, 0.78, 0.70))
+        _add_mission_prop_box(marker, "BatteryLabel", Vector3(0.28, 0.025, 0.015), Vector3(0.0, 0.18, -0.235), Color(0.95, 0.78, 0.24))
+    elif marker_name == "EmergencyRadio":
+        mesh.position.y = 0.0
+        _add_mission_prop_box(marker, "RadioFace", Vector3(0.48, 0.32, 0.06), Vector3(0.0, 0.15, -0.28), Color(0.08, 0.12, 0.13))
+        _add_mission_prop_box(marker, "RadioDisplay", Vector3(0.25, 0.12, 0.025), Vector3(-0.04, 0.19, -0.32), Color(0.20, 0.72, 0.52))
+        _add_mission_prop_box(marker, "RadioDial", Vector3(0.09, 0.09, 0.035), Vector3(0.22, 0.13, -0.32), Color(0.72, 0.66, 0.46))
+        var antenna := MeshInstance3D.new()
+        antenna.name = "RadioAntenna"
+        var antenna_mesh := CylinderMesh.new()
+        antenna_mesh.top_radius = 0.025
+        antenna_mesh.bottom_radius = 0.04
+        antenna_mesh.height = 0.9
+        antenna.mesh = antenna_mesh
+        antenna.position = Vector3(0.25, 0.95, 0.05)
+        antenna.rotation_degrees.z = -8.0
+        var antenna_material := StandardMaterial3D.new()
+        antenna_material.albedo_color = Color(0.30, 0.32, 0.31)
+        antenna.material_override = antenna_material
+        marker.add_child(antenna)
+    elif marker_name == "ExtractionSignal":
+        mesh.position.y = -0.04
+        var beacon := MeshInstance3D.new()
+        beacon.name = "ExtractionBeacon"
+        var beacon_mesh := CylinderMesh.new()
+        beacon_mesh.top_radius = 0.18
+        beacon_mesh.bottom_radius = 0.28
+        beacon_mesh.height = 1.8
+        beacon.mesh = beacon_mesh
+        beacon.position = Vector3(0.0, 0.95, 0.0)
+        var beacon_material := StandardMaterial3D.new()
+        beacon_material.albedo_color = Color(0.18, 0.82, 0.46)
+        beacon_material.emission_enabled = true
+        beacon_material.emission = Color(0.08, 0.65, 0.28)
+        beacon_material.emission_energy_multiplier = 2.0
+        beacon.material_override = beacon_material
+        marker.add_child(beacon)
+        _add_mission_prop_box(marker, "BeaconCrossbar", Vector3(0.9, 0.08, 0.08), Vector3(0.0, 1.55, 0.0), Color(0.72, 0.92, 0.76))
+
     var label := Label3D.new()
+    label.name = "ObjectiveLabel"
     label.text = marker_name.to_upper().replace("_", " ")
-    label.position = Vector3(0, 1.1, 0)
+    label.position = Vector3(0, 1.9 if marker_name == "ExtractionSignal" else 1.25, 0)
     label.font_size = 24
     label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
     label.modulate = color.lightened(0.35)
     marker.add_child(label)
+
+func _add_mission_prop_box(parent: Node3D, prop_name: String, size: Vector3, pos: Vector3, color: Color) -> void:
+    var prop := MeshInstance3D.new()
+    prop.name = prop_name
+    var prop_mesh := BoxMesh.new()
+    prop_mesh.size = size
+    prop.mesh = prop_mesh
+    prop.position = pos
+    var prop_material := StandardMaterial3D.new()
+    prop_material.albedo_color = color
+    prop_material.roughness = 0.62
+    prop.material_override = prop_material
+    parent.add_child(prop)
 
 func _start_mission_two() -> void:
     campaign_mission = 2
