@@ -167,11 +167,25 @@ func _input(event: InputEvent) -> void:
         get_viewport().set_input_as_handled()
         return
 
-    if start_hit or (is_touch and not has_saved_game):
-        # Android touch coordinates can differ from GUI hit-test coordinates on
-        # letterboxed landscape exports. With no checkpoint, any menu tap safely
-        # starts a fresh game instead of leaving the player trapped on this screen.
-        _new_game()
+    if is_touch:
+        # Visible diagnostic: confirms whether Android is delivering touch input
+        # to Godot at all, independent of GUI hit-test coordinates.
+        transition_label.text = "TOUCH RECEIVED"
+        transition_label.visible = true
+        if not has_saved_game:
+            # Defer until the input event finishes dispatching. This avoids
+            # changing the scene/UI tree in the middle of Android touch routing.
+            call_deferred("_new_game")
+            get_viewport().set_input_as_handled()
+            return
+
+    if continue_hit:
+        call_deferred("_continue_game")
+        get_viewport().set_input_as_handled()
+        return
+
+    if start_hit:
+        call_deferred("_new_game")
         get_viewport().set_input_as_handled()
 
 func _build_performance_hud() -> void:
