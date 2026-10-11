@@ -720,7 +720,8 @@ func _start_game() -> void:
     _reset_performance_monitor()
     game_over = false
     player.clear_mobile_input()
-    player.set_physics_process(true)
+    # A completed Mission 2 checkpoint is a results state, not an active survival simulation.
+    player.set_physics_process(not (campaign_mission == 2 and mission_complete))
     camera.current = true
     transition_label.visible = false
     mobile_controls.visible = true
@@ -812,6 +813,10 @@ func _process(delta: float) -> void:
         if mission_feedback_time <= 0.0 and is_instance_valid(transition_label):
             transition_label.visible = false
     if menu.visible or game_over:
+        return
+    # Stop the clock, hunger drain, autosaves, and enemy updates after Mission 2 extraction.
+    # Mission 1 completion remains active so the player can interact to begin Mission 2.
+    if campaign_mission == 2 and mission_complete:
         return
 
     survival_elapsed += delta
@@ -1607,6 +1612,7 @@ func _add_mission_prop_box(parent: Node3D, prop_name: String, size: Vector3, pos
 func _start_mission_two() -> void:
     campaign_mission = 2
     mission_complete = false
+    player.set_physics_process(true)
     radio_battery_collected = false
     radio_contact_restored = false
     mission_two_root.visible = true
@@ -1709,6 +1715,8 @@ func _complete_mission_two() -> void:
     if mission_complete or not radio_contact_restored:
         return
     mission_complete = true
+    player.clear_mobile_input()
+    player.set_physics_process(false)
     interaction_target = ""
     # End combat cleanly once extraction succeeds.
     enemy_active = false
