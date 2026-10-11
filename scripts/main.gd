@@ -110,7 +110,15 @@ func _ready() -> void:
     _update_world_lighting()
     has_saved_game = _load_game()
     if campaign_mission == 2 and is_instance_valid(mission_two_root):
-        mission_two_root.visible = true
+        mission_two_root.visible = not mission_complete
+        var saved_battery := mission_two_root.get_node_or_null("RadioBattery")
+        var saved_radio := mission_two_root.get_node_or_null("EmergencyRadio")
+        if is_instance_valid(saved_battery):
+            saved_battery.visible = not radio_battery_collected
+        if is_instance_valid(saved_radio):
+            saved_radio.visible = not radio_contact_restored
+        if mission_complete:
+            mission_complete_label.text = "MISSION 02 COMPLETE\nRESCUE SIGNAL SENT"
     if has_saved_game:
         _update_world_lighting()
     var original_info := $HUD/Menu/Panel.get_node_or_null("Info") as Label
@@ -217,6 +225,7 @@ func _new_game() -> void:
     night_survived = false
     last_world_time = 8.0
     mission_complete = false
+    mission_complete_label.text = "MISSION COMPLETE\nDAY'S AFTER"
     night_threat_spawned = false
     dawn_message_active = false
     campaign_mission = 1
