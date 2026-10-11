@@ -163,26 +163,27 @@ func _input(event: InputEvent) -> void:
     var continue_hit := is_instance_valid(continue_button) and continue_button.visible and continue_rect.has_point(input_position)
 
     if continue_hit:
-        _continue_game()
+        call_deferred("_continue_game")
         get_viewport().set_input_as_handled()
         return
 
     if is_touch:
-        # Visible diagnostic: confirms whether Android is delivering touch input
-        # to Godot at all, independent of GUI hit-test coordinates.
+        # Diagnostic and resilient Android fallback. The editor's fixed 1280x720
+        # canvas can be letterboxed on phones, so event.position may not match
+        # Control.get_global_rect() in exported Android builds. Map touch to the
+        # viewport and use the visible Start-button band as a fallback.
         transition_label.text = "TOUCH RECEIVED"
         transition_label.visible = true
-        if not has_saved_game:
-            # Defer until the input event finishes dispatching. This avoids
-            # changing the scene/UI tree in the middle of Android touch routing.
+
+        var viewport_size := get_viewport().get_visible_rect().size
+        var safe_size := Vector2(maxf(1.0, viewport_size.x), maxf(1.0, viewport_size.y))
+        var normalized := Vector2(input_position.x / safe_size.x, input_position.y / safe_size.y)
+        var likely_start_band := normalized.x >= 0.25 and normalized.x <= 0.75 and normalized.y >= 0.43 and normalized.y <= 0.66
+
+        if not has_saved_game or start_hit or likely_start_band:
             call_deferred("_new_game")
             get_viewport().set_input_as_handled()
             return
-
-    if continue_hit:
-        call_deferred("_continue_game")
-        get_viewport().set_input_as_handled()
-        return
 
     if start_hit:
         call_deferred("_new_game")
