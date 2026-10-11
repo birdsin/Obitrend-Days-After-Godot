@@ -383,6 +383,9 @@ func _spawn_enemy() -> void:
     enemy_attack_cooldown = 0.0
     enemy_active = true
     enemy_root.visible = true
+    if is_instance_valid(enemy_health_label):
+        enemy_health_label.text = "THREAT  100%"
+        enemy_health_label.visible = true
     transition_label.text = "THREAT DETECTED"
     transition_label.visible = true
     await get_tree().create_timer(1.0).timeout
@@ -455,9 +458,16 @@ func _attack_enemy() -> void:
     if enemy_health <= 0.0:
         enemy_active = false
         enemy_root.visible = false
+        if is_instance_valid(enemy_health_label):
+            enemy_health_label.text = "THREAT ELIMINATED"
+            enemy_health_label.visible = true
         transition_label.text = "THREAT ELIMINATED"
     else:
-        transition_label.text = "HIT CONFIRMED  •  THREAT %d%%" % roundi((enemy_health / enemy_max_health) * 100.0)
+        var remaining_health := roundi((enemy_health / enemy_max_health) * 100.0)
+        if is_instance_valid(enemy_health_label):
+            enemy_health_label.text = "THREAT  %d%%" % remaining_health
+            enemy_health_label.visible = true
+        transition_label.text = "HIT CONFIRMED  •  THREAT %d%%" % remaining_health
     transition_label.visible = true
     await get_tree().create_timer(0.75).timeout
     if not game_over:
