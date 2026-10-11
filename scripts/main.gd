@@ -744,6 +744,11 @@ func _start_game() -> void:
     if has_saved_game:
         enemy_active = false
         enemy_root.visible = false
+        # Recreate a threat that was already active when the player saved.
+        # The enemy itself is transient, but the night encounter state is saved.
+        if not mission_complete and not night_survived and night_threat_spawned and world_time >= 18.0:
+            if campaign_mission == 2 or supplies_count >= 1:
+                _spawn_enemy()
 
 func _update_survival_hud() -> void:
     inventory_label.text = "SUPPLIES  %d / 1   FOOD  %d   WATER  %d" % [supplies_count, food_count, water_count]
