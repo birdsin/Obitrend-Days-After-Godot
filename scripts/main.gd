@@ -1436,6 +1436,17 @@ func _add_checkpoint_box(prop_name: String, pos: Vector3, size: Vector3, color: 
     prop.material_override = material
     mission_two_root.add_child(prop)
 
+    # Physical collision makes the checkpoint props part of the playable world.
+    var body := StaticBody3D.new()
+    body.name = "%sCollision" % prop_name
+    body.position = pos
+    var collision := CollisionShape3D.new()
+    var shape := BoxShape3D.new()
+    shape.size = size
+    collision.shape = shape
+    body.add_child(collision)
+    mission_two_root.add_child(body)
+
 func _add_checkpoint_barrel(prop_name: String, pos: Vector3, color: Color) -> void:
     var prop := MeshInstance3D.new()
     prop.name = prop_name
@@ -1450,6 +1461,17 @@ func _add_checkpoint_barrel(prop_name: String, pos: Vector3, color: Color) -> vo
     material.roughness = 0.86
     prop.material_override = material
     mission_two_root.add_child(prop)
+
+    var body := StaticBody3D.new()
+    body.name = "%sCollision" % prop_name
+    body.position = pos
+    var collision := CollisionShape3D.new()
+    var shape := CylinderShape3D.new()
+    shape.radius = 0.42
+    shape.height = 1.3
+    collision.shape = shape
+    body.add_child(collision)
+    mission_two_root.add_child(body)
 
 func _create_mission_marker(marker_name: String, pos: Vector3, size: Vector3, color: Color) -> void:
     var marker := Node3D.new()
