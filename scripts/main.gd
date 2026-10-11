@@ -771,14 +771,17 @@ func _start_game() -> void:
 
 func _update_survival_hud() -> void:
     inventory_label.text = "SUPPLIES  %d / 1   FOOD  %d   WATER  %d" % [supplies_count, food_count, water_count]
-    if supplies_count >= 1 and not night_survived and world_time >= 18.0:
-        objective_label.text = "OBJECTIVE  •  Survive until dawn"
-    elif supplies_count >= 1 and night_survived:
-        objective_label.text = "OBJECTIVE  •  Reach the safe zone"
-    elif supplies_count >= 1:
-        objective_label.text = "OBJECTIVE  •  Prepare for night"
-    else:
-        objective_label.text = "OBJECTIVE  •  Find supplies"
+    # Mission 2 owns its objective text and live target distance; don't overwrite it
+    # with Mission 1's survival objectives on every HUD refresh.
+    if campaign_mission == 1:
+        if supplies_count >= 1 and not night_survived and world_time >= 18.0:
+            objective_label.text = "OBJECTIVE  •  Survive until dawn"
+        elif supplies_count >= 1 and night_survived:
+            objective_label.text = "OBJECTIVE  •  Reach the safe zone"
+        elif supplies_count >= 1:
+            objective_label.text = "OBJECTIVE  •  Prepare for night"
+        else:
+            objective_label.text = "OBJECTIVE  •  Find supplies"
     status_label.text = "HEALTH  %d   HUNGER  %d" % [roundi(health), roundi(hunger)]
     if mobile_buttons.has("use_food"):
         mobile_buttons["use_food"].visible = food_count > 0 and hunger < 99.0 and not menu.visible and not game_over
