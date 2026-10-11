@@ -117,10 +117,11 @@ func _ready() -> void:
         start_button.gui_input.connect(_on_start_button_gui_input)
     start_button.text = "START GAME"
 
-    # Let touch events reach the actual buttons on Android. The full-screen
-    # menu and decorative panel must not intercept the button's GUI input.
-    menu.mouse_filter = Control.MOUSE_FILTER_IGNORE
-    $HUD/Menu/Panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    # Android taps can arrive as screen-touch events or emulated mouse events.
+    # Keep the menu/panel participating in GUI routing while the child Button
+    # remains the deepest target; project.godot also enables touch-to-mouse.
+    menu.mouse_filter = Control.MOUSE_FILTER_PASS
+    $HUD/Menu/Panel.mouse_filter = Control.MOUSE_FILTER_PASS
 
     _build_checkpoint_menu()
     _build_city_collisions()
@@ -195,26 +196,21 @@ func _input(event: InputEvent) -> void:
         return
 
     if is_touch:
-        # Diagnostic and resilient Android fallback. The editor's fixed 1280x720
-        # canvas can be letterboxed on phones, so event.position may not match
-        # Control.get_global_rect() in exported Android builds. Map touch to the
-        # viewport and use the visible Start-button band as a fallback.
-        transition_label.text = "TOUCH RECEIVED"
+        # Keep Continue hit-testing first. With no visible Continue button,
+        # any menu tap starts a fresh game: Android viewport coordinates may
+        # not match Control.get_global_rect() after letterboxing/stretching.
+        transition_label.text = "TOUCH RECEIVED • STARTING"
         transition_label.visible = true
-
-        var viewport_size := get_viewport().get_visible_rect().size
-        var safe_size := Vector2(maxf(1.0, viewport_size.x), maxf(1.0, viewport_size.y))
-        var normalized := Vector2(input_position.x / safe_size.x, input_position.y / safe_size.y)
-        var likely_start_band := normalized.x >= 0.25 and normalized.x <= 0.75 and normalized.y >= 0.43 and normalized.y <= 0.66
-
-        if not has_saved_game or start_hit or likely_start_band:
-            call_deferred("_new_game")
-            get_viewport().set_input_as_handled()
-            return
-
-    if start_hit:
         call_deferred("_new_game")
         get_viewport().set_input_as_handled()
+        return
+
+    if start_hit:
+        transition_label.text = "START CLICK RECEIVED"
+        transition_label.visible = true
+        call_deferred("_new_game")
+        get_viewport().set_input_as_handled()
+        return
 
 func _build_performance_hud() -> void:
     performance_fps_label = Label.new()
