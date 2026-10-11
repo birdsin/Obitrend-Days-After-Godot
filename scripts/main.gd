@@ -760,6 +760,17 @@ func _start_game() -> void:
         _update_world_lighting()
 
     _update_survival_hud()
+    # Rebuild the correct Mission 2 objective after loading a checkpoint.
+    # The target distance is refreshed by _update_mission_two() during gameplay.
+    if campaign_mission == 2:
+        if mission_complete:
+            objective_label.text = "MISSION 02 COMPLETE • Rescue contacted"
+        elif radio_contact_restored:
+            objective_label.text = "MISSION 02 • Reach the extraction signal"
+        elif radio_battery_collected:
+            objective_label.text = "MISSION 02 • Restore contact at the radio"
+        else:
+            objective_label.text = "MISSION 02 • Find the radio battery"
     if has_saved_game:
         enemy_active = false
         enemy_root.visible = false
