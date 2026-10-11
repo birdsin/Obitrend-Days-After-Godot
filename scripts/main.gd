@@ -383,6 +383,9 @@ func _spawn_enemy() -> void:
     enemy_attack_cooldown = 0.0
     enemy_active = true
     enemy_root.visible = true
+    enemy_root.modulate = Color.WHITE
+    if is_instance_valid(mobile_buttons.get("attack")):
+        mobile_buttons["attack"].visible = true
     if is_instance_valid(enemy_health_label):
         enemy_health_label.text = "THREAT  100%"
         enemy_health_label.visible = true
@@ -458,6 +461,9 @@ func _attack_enemy() -> void:
     if enemy_health <= 0.0:
         enemy_active = false
         enemy_root.visible = false
+        enemy_root.modulate = Color.WHITE
+        if is_instance_valid(mobile_buttons.get("attack")):
+            mobile_buttons["attack"].visible = false
         if is_instance_valid(enemy_health_label):
             enemy_health_label.text = "THREAT ELIMINATED"
             enemy_health_label.visible = true
