@@ -1,0 +1,26 @@
+{
+  "id": 2,
+  "chapter": 2,
+  "title": "NO WAY BACK",
+  "status": "design_ready",
+  "cinematic_before": true,
+  "story": "The safe zone is only a temporary shelter. A damaged emergency radio may be your only way to contact rescue.",
+  "objective": [
+    "Locate the abandoned checkpoint",
+    "Recover the emergency radio battery",
+    "Restore contact with the rescue channel",
+    "Reach the extraction signal"
+  ],
+  "content_pack": "mission_002",
+  "content_delivery": "external_pack",
+  "target_installed_size_gb": 2.0,
+  "prerequisites": [
+    "mission_001"
+  ],
+  "rewards": {
+    "campaign_unlock": "mission_003",
+    "items": [
+      "emergency_radio"
+    ]
+  }
+}
