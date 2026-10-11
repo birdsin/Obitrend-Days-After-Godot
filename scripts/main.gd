@@ -979,6 +979,12 @@ func _interact() -> void:
         _take_food()
     elif interaction_target == "WATER" and inside_building:
         _take_water()
+    elif interaction_target == "MISSION_BATTERY" and campaign_mission == 2 and not radio_battery_collected:
+        _collect_mission_battery()
+    elif interaction_target == "MISSION_RADIO" and campaign_mission == 2 and radio_battery_collected and not radio_contact_restored:
+        _restore_mission_radio()
+    elif interaction_target == "MISSION_EXTRACTION" and campaign_mission == 2 and radio_contact_restored and not mission_complete:
+        _complete_mission_two()
 
 func _search_desk() -> void:
     if supplies_count >= 1:
@@ -1583,46 +1589,84 @@ func _start_mission_two() -> void:
 func _update_mission_two(_delta: float) -> void:
     if not is_instance_valid(mission_two_root) or not mission_two_root.visible:
         return
-    var battery := mission_two_root.get_node_or_null("RadioBattery")
-    var radio := mission_two_root.get_node_or_null("EmergencyRadio")
-    var extraction := mission_two_root.get_node_or_null("ExtractionSignal")
+    var battery := mission_two_root.get_node_or_null("RadioBattery") as Node3D
+    var radio := mission_two_root.get_node_or_null("EmergencyRadio") as Node3D
+    var extraction := mission_two_root.get_node_or_null("ExtractionSignal") as Node3D
 
-    # Keep the current objective and its distance visible while the player explores.
+    # Mission objectives require a deliberate INTERACT action rather than
+    # silently completing when the player walks past an object.
+    interaction_target = ""
+    interact_label.visible = false
+    mobile_buttons["interact"].visible = false
+
     var guidance_target: Node3D
     var guidance_name := ""
+    var prompt := ""
+    var target_code := ""
+    var interaction_range := 2.6
     if not radio_battery_collected and is_instance_valid(battery):
         guidance_target = battery
         guidance_name = "RADIO BATTERY"
-    elif not radio_contact_restored and is_instance_valid(radio):
+        prompt = "Recover radio battery • Tap INTERACT"
+        target_code = "MISSION_BATTERY"
+    elif radio_battery_collected and not radio_contact_restored and is_instance_valid(radio):
         guidance_target = radio
         guidance_name = "EMERGENCY RADIO"
-    elif is_instance_valid(extraction):
+        prompt = "Restore rescue contact • Tap INTERACT"
+        target_code = "MISSION_RADIO"
+    elif radio_contact_restored and is_instance_valid(extraction):
         guidance_target = extraction
         guidance_name = "EXTRACTION SIGNAL"
-    if is_instance_valid(guidance_target):
-        var target_distance := player.global_position.distance_to(guidance_target.global_position)
-        objective_label.text = "MISSION 02 • %s • %d m" % [guidance_name, roundi(target_distance)]
+        prompt = "Send rescue signal • Tap INTERACT"
+        target_code = "MISSION_EXTRACTION"
+        interaction_range = 3.6
 
-    if not radio_battery_collected and is_instance_valid(battery) and player.global_position.distance_to(battery.global_position) <= 2.0:
-        radio_battery_collected = true
-        battery.visible = false
-        objective_label.text = "MISSION 02 • Restore contact at the radio"
-        transition_label.text = "RADIO BATTERY RECOVERED"
-        transition_label.visible = true
-        mission_feedback_time = 2.2
-        _save_game()
-    elif radio_battery_collected and not radio_contact_restored and is_instance_valid(radio) and player.global_position.distance_to(radio.global_position) <= 2.2:
-        radio_contact_restored = true
-        radio.visible = false
-        objective_label.text = "MISSION 02 • Reach the extraction signal"
-        transition_label.text = "RESCUE CHANNEL RESTORED"
-        transition_label.visible = true
-        mission_feedback_time = 2.2
-        _save_game()
-    elif radio_contact_restored and is_instance_valid(extraction) and player.global_position.distance_to(extraction.global_position) <= 3.2:
-        mission_complete = true
-        mission_complete_label.text = "MISSION 02 COMPLETE\nRESCUE SIGNAL SENT"
-        mission_complete_label.visible = true
-        objective_label.text = "MISSION 02 COMPLETE • Rescue contacted"
-        mission_two_root.visible = false
-        _save_game()
+    if not is_instance_valid(guidance_target):
+        return
+
+    var target_distance := player.global_position.distance_to(guidance_target.global_position)
+    objective_label.text = "MISSION 02 • %s • %d m" % [guidance_name, roundi(target_distance)]
+    if target_distance <= interaction_range:
+        interaction_target = target_code
+        interact_label.text = prompt
+        interact_label.visible = true
+        mobile_buttons["interact"].visible = true
+
+func _collect_mission_battery() -> void:
+    var battery := mission_two_root.get_node_or_null("RadioBattery")
+    if not is_instance_valid(battery) or radio_battery_collected:
+        return
+    radio_battery_collected = true
+    battery.visible = false
+    interaction_target = ""
+    objective_label.text = "MISSION 02 • Restore contact at the radio"
+    transition_label.text = "RADIO BATTERY RECOVERED"
+    transition_label.visible = true
+    mission_feedback_time = 2.2
+    _save_game()
+
+func _restore_mission_radio() -> void:
+    var radio := mission_two_root.get_node_or_null("EmergencyRadio")
+    if not is_instance_valid(radio) or not radio_battery_collected or radio_contact_restored:
+        return
+    radio_contact_restored = true
+    radio.visible = false
+    interaction_target = ""
+    objective_label.text = "MISSION 02 • Reach the extraction signal"
+    transition_label.text = "RESCUE CHANNEL RESTORED"
+    transition_label.visible = true
+    mission_feedback_time = 2.2
+    _save_game()
+
+func _complete_mission_two() -> void:
+    if mission_complete or not radio_contact_restored:
+        return
+    mission_complete = true
+    interaction_target = ""
+    mission_complete_label.text = "MISSION 02 COMPLETE\nRESCUE SIGNAL SENT"
+    mission_complete_label.visible = true
+    objective_label.text = "MISSION 02 COMPLETE • Rescue contacted"
+    mission_two_root.visible = false
+    interact_label.visible = false
+    mobile_buttons["interact"].visible = false
+    _save_game()
