@@ -1415,16 +1415,23 @@ func _load_game() -> bool:
     world_time = fmod(float(parsed.get("world_time", 8.0)), 24.0)
     day_number = maxi(1, int(parsed.get("day_number", 1)))
     stamina = clampf(float(parsed.get("stamina", 100.0)), 0.0, 100.0)
-    supplies_count = int(parsed.get("supplies_count", 0))
-    food_count = int(parsed.get("food_count", 0))
-    water_count = int(parsed.get("water_count", 0))
+    supplies_count = maxi(0, int(parsed.get("supplies_count", 0)))
+    food_count = maxi(0, int(parsed.get("food_count", 0)))
+    water_count = maxi(0, int(parsed.get("water_count", 0)))
     search_completed = bool(parsed.get("search_completed", supplies_count >= 1))
     night_survived = bool(parsed.get("night_survived", false))
-    mission_complete = bool(parsed.get("mission_complete", false))
     night_threat_spawned = bool(parsed.get("night_threat_spawned", world_time >= 18.0 and not night_survived))
     campaign_mission = clampi(int(parsed.get("campaign_mission", 1)), 1, 2)
     radio_battery_collected = bool(parsed.get("radio_battery_collected", false))
     radio_contact_restored = bool(parsed.get("radio_contact_restored", false))
+    # Normalize older or partially written checkpoints so mission flags stay coherent.
+    if radio_contact_restored:
+        radio_battery_collected = true
+    mission_complete = bool(parsed.get("mission_complete", false))
+    if campaign_mission != 2 or not radio_contact_restored:
+        mission_complete = false
+    if mission_complete:
+        night_threat_spawned = false
 
     var saved_position = parsed.get("player_position", {})
     if saved_position is Dictionary:
