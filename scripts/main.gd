@@ -72,6 +72,7 @@ var campaign_mission := 1
 var radio_battery_collected := false
 var radio_contact_restored := false
 var mission_two_root: Node3D
+var mission_feedback_time := 0.0
 
 func _ready() -> void:
     Engine.max_fps = 60
@@ -783,6 +784,10 @@ func _process(delta: float) -> void:
         enemy_hit_flash = maxf(0.0, enemy_hit_flash - delta)
         if enemy_hit_flash <= 0.0 and is_instance_valid(enemy_root):
             enemy_root.modulate = Color.WHITE
+    if mission_feedback_time > 0.0:
+        mission_feedback_time = maxf(0.0, mission_feedback_time - delta)
+        if mission_feedback_time <= 0.0 and is_instance_valid(transition_label):
+            transition_label.visible = false
     if menu.visible or game_over:
         return
 
@@ -1582,6 +1587,7 @@ func _update_mission_two(_delta: float) -> void:
         objective_label.text = "MISSION 02 • Restore contact at the radio"
         transition_label.text = "RADIO BATTERY RECOVERED"
         transition_label.visible = true
+        mission_feedback_time = 2.2
         _save_game()
     elif radio_battery_collected and not radio_contact_restored and is_instance_valid(radio) and player.global_position.distance_to(radio.global_position) <= 2.2:
         radio_contact_restored = true
@@ -1589,6 +1595,7 @@ func _update_mission_two(_delta: float) -> void:
         objective_label.text = "MISSION 02 • Reach the extraction signal"
         transition_label.text = "RESCUE CHANNEL RESTORED"
         transition_label.visible = true
+        mission_feedback_time = 2.2
         _save_game()
     elif radio_contact_restored and is_instance_valid(extraction) and player.global_position.distance_to(extraction.global_position) <= 3.2:
         mission_complete = true
