@@ -23,10 +23,10 @@ var missions := {
         "objective": "MISSION 01  •  FIND SUPPLIES  •  SURVIVE  •  REACH THE SAFE ZONE"
     },
     2: {
-        "chapter": "CHAPTER 01",
+        "chapter": "CHAPTER 02",
         "title": "NO WAY BACK",
-        "briefing": "The road ahead is blocked.\nFind another route and keep moving.",
-        "objective": "MISSION 02  •  ROUTE TO BE DEFINED"
+        "briefing": "The safe zone is only a temporary shelter. A damaged emergency radio may be your only way to contact rescue. Search the abandoned checkpoint, recover the radio battery, and reach the extraction signal before the threat closes in.",
+        "objective": "MISSION 02  •  FIND THE RADIO BATTERY  •  RESTORE CONTACT  •  REACH EXTRACTION"
     }
 }
 
