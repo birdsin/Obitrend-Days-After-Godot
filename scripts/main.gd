@@ -1559,6 +1559,23 @@ func _update_mission_two(_delta: float) -> void:
     var battery := mission_two_root.get_node_or_null("RadioBattery")
     var radio := mission_two_root.get_node_or_null("EmergencyRadio")
     var extraction := mission_two_root.get_node_or_null("ExtractionSignal")
+
+    # Keep the current objective and its distance visible while the player explores.
+    var guidance_target: Node3D
+    var guidance_name := ""
+    if not radio_battery_collected and is_instance_valid(battery):
+        guidance_target = battery
+        guidance_name = "RADIO BATTERY"
+    elif not radio_contact_restored and is_instance_valid(radio):
+        guidance_target = radio
+        guidance_name = "EMERGENCY RADIO"
+    elif is_instance_valid(extraction):
+        guidance_target = extraction
+        guidance_name = "EXTRACTION SIGNAL"
+    if is_instance_valid(guidance_target):
+        var target_distance := player.global_position.distance_to(guidance_target.global_position)
+        objective_label.text = "MISSION 02 • %s • %d m" % [guidance_name, roundi(target_distance)]
+
     if not radio_battery_collected and is_instance_valid(battery) and player.global_position.distance_to(battery.global_position) <= 2.0:
         radio_battery_collected = true
         battery.visible = false
