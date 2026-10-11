@@ -9,6 +9,9 @@ var mobile_input := Vector2.ZERO
 var sprint_pressed := false
 var sprint_allowed := true
 var is_sprinting := false
+@export var acceleration := 24.0
+@export var deceleration := 30.0
+@export var turn_speed := 10.0
 
 func _ready() -> void:
     set_physics_process(false)
@@ -35,19 +38,28 @@ func clear_mobile_input() -> void:
 func _physics_process(delta: float) -> void:
     var keyboard_input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
     var input_vec := mobile_input if mobile_input.length() > 0.01 else keyboard_input
-    var direction := Vector3(input_vec.x, 0.0, input_vec.y)
+    var camera_node := get_node_or_null("CameraRig/Camera3D") as Camera3D
+    var direction := Vector3.ZERO
+    if input_vec.length() > 0.01:
+        if is_instance_valid(camera_node):
+            var forward := -camera_node.global_transform.basis.z
+            var right := camera_node.global_transform.basis.x
+            forward.y = 0.0
+            right.y = 0.0
+            direction = (right.normalized() * input_vec.x + forward.normalized() * -input_vec.y).normalized()
+        else:
+            direction = Vector3(input_vec.x, 0.0, input_vec.y).normalized()
 
     if direction.length() > 0.1:
-        direction = direction.normalized()
         is_sprinting = sprint_allowed and (sprint_pressed or Input.is_key_pressed(KEY_SHIFT))
         var current_speed := sprint_speed if is_sprinting else speed
-        velocity.x = direction.x * current_speed
-        velocity.z = direction.z * current_speed
-        rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), delta * 8.0)
+        velocity.x = move_toward(velocity.x, direction.x * current_speed, acceleration * delta)
+        velocity.z = move_toward(velocity.z, direction.z * current_speed, acceleration * delta)
+        rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), delta * turn_speed)
     else:
         is_sprinting = false
-        velocity.x = move_toward(velocity.x, 0.0, speed * 8.0 * delta)
-        velocity.z = move_toward(velocity.z, 0.0, speed * 8.0 * delta)
+        velocity.x = move_toward(velocity.x, 0.0, deceleration * delta)
+        velocity.z = move_toward(velocity.z, 0.0, deceleration * delta)
 
     if not is_on_floor():
         velocity.y -= gravity * delta

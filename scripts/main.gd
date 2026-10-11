@@ -68,6 +68,36 @@ var performance_hud_visible := true
 var enemy_health_label: Label
 var night_threat_spawned := false
 var dawn_message_active := false
+var campaign_mission := 1
+var radio_battery_collected := false
+var radio_contact_restored := false
+var mission_two_root: Node3D
+var mission_feedback_time := 0.0
+
+func _on_start_button_pressed() -> void:
+    # Route the actual Button.pressed signal through a single deferred transition.
+    if menu.visible and not game_over:
+        transition_label.text = "START PRESSED"
+        transition_label.visible = true
+        call_deferred("_new_game")
+
+
+func _on_start_button_gui_input(event: InputEvent) -> void:
+    # Direct GUI touch handling is independent of global touch-coordinate hit tests.
+    if event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
+        if menu.visible and not game_over:
+            transition_label.text = "BUTTON TOUCH RECEIVED"
+            transition_label.visible = true
+            call_deferred("_new_game")
+            get_viewport().set_input_as_handled()
+    elif event is InputEventMouseButton:
+        var mouse := event as InputEventMouseButton
+        if mouse.button_index == MOUSE_BUTTON_LEFT and mouse.pressed and menu.visible and not game_over:
+            transition_label.text = "BUTTON CLICK RECEIVED"
+            transition_label.visible = true
+            call_deferred("_new_game")
+            get_viewport().set_input_as_handled()
+
 
 func _ready() -> void:
     Engine.max_fps = 60
@@ -81,10 +111,15 @@ func _ready() -> void:
     start_button.mouse_filter = Control.MOUSE_FILTER_STOP
     start_button.disabled = false
     start_button.focus_mode = Control.FOCUS_NONE
-    if not start_button.pressed.is_connected(_new_game):
-        start_button.pressed.connect(_new_game)
+    if not start_button.pressed.is_connected(_on_start_button_pressed):
+        start_button.pressed.connect(_on_start_button_pressed)
+    if not start_button.gui_input.is_connected(_on_start_button_gui_input):
+        start_button.gui_input.connect(_on_start_button_gui_input)
     start_button.text = "START GAME"
 
+    # Android taps can arrive as screen-touch events or emulated mouse events.
+    # Keep the menu/panel participating in GUI routing while the child Button
+    # remains the deepest target; project.godot also enables touch-to-mouse.
     menu.mouse_filter = Control.MOUSE_FILTER_PASS
     $HUD/Menu/Panel.mouse_filter = Control.MOUSE_FILTER_PASS
 
@@ -97,6 +132,7 @@ func _ready() -> void:
     _build_time_hud()
     _build_enemy_system()
     _build_safe_zone()
+    _build_mission_two_hud_world()
     _build_mission_complete_hud()
     _build_flashlight()
     _build_enemy_health_hud()
@@ -104,6 +140,16 @@ func _ready() -> void:
     _layout_mobile_controls()
     _update_world_lighting()
     has_saved_game = _load_game()
+    if campaign_mission == 2 and is_instance_valid(mission_two_root):
+        mission_two_root.visible = not mission_complete
+        var saved_battery := mission_two_root.get_node_or_null("RadioBattery")
+        var saved_radio := mission_two_root.get_node_or_null("EmergencyRadio")
+        if is_instance_valid(saved_battery):
+            saved_battery.visible = not radio_battery_collected
+        if is_instance_valid(saved_radio):
+            saved_radio.visible = not radio_contact_restored
+        if mission_complete:
+            mission_complete_label.text = "MISSION 02 COMPLETE\nRESCUE SIGNAL SENT"
     if has_saved_game:
         _update_world_lighting()
     var original_info := $HUD/Menu/Panel.get_node_or_null("Info") as Label
@@ -121,11 +167,13 @@ func _input(event: InputEvent) -> void:
 
     var pressed := false
     var input_position := Vector2.ZERO
+    var is_touch := false
 
     if event is InputEventScreenTouch:
         var touch := event as InputEventScreenTouch
         pressed = touch.pressed
         input_position = touch.position
+        is_touch = true
     elif event is InputEventMouseButton:
         var mouse := event as InputEventMouseButton
         if mouse.button_index == MOUSE_BUTTON_LEFT:
@@ -136,9 +184,33 @@ func _input(event: InputEvent) -> void:
         return
 
     var start := $HUD/Menu/Panel/Start as Button
-    if is_instance_valid(start) and not start.disabled and start.get_global_rect().has_point(input_position):
-        _new_game()
+    var continue_rect := Rect2()
+    if is_instance_valid(continue_button) and continue_button.visible:
+        continue_rect = continue_button.get_global_rect()
+    var start_hit := is_instance_valid(start) and not start.disabled and start.get_global_rect().has_point(input_position)
+    var continue_hit := is_instance_valid(continue_button) and continue_button.visible and continue_rect.has_point(input_position)
+
+    if continue_hit:
+        call_deferred("_continue_game")
         get_viewport().set_input_as_handled()
+        return
+
+    if is_touch:
+        # Keep Continue hit-testing first. With no visible Continue button,
+        # any menu tap starts a fresh game: Android viewport coordinates may
+        # not match Control.get_global_rect() after letterboxing/stretching.
+        transition_label.text = "TOUCH RECEIVED • STARTING"
+        transition_label.visible = true
+        call_deferred("_new_game")
+        get_viewport().set_input_as_handled()
+        return
+
+    if start_hit:
+        transition_label.text = "START CLICK RECEIVED"
+        transition_label.visible = true
+        call_deferred("_new_game")
+        get_viewport().set_input_as_handled()
+        return
 
 func _build_performance_hud() -> void:
     performance_fps_label = Label.new()
@@ -210,8 +282,14 @@ func _new_game() -> void:
     night_survived = false
     last_world_time = 8.0
     mission_complete = false
+    mission_complete_label.text = "MISSION COMPLETE\nDAY'S AFTER"
     night_threat_spawned = false
     dawn_message_active = false
+    campaign_mission = 1
+    radio_battery_collected = false
+    radio_contact_restored = false
+    if is_instance_valid(mission_two_root):
+        mission_two_root.visible = false
     enemy_health = enemy_max_health
     enemy_attack_cooldown = 0.0
     enemy_active = false
@@ -361,6 +439,12 @@ func _spawn_enemy() -> void:
     enemy_attack_cooldown = 0.0
     enemy_active = true
     enemy_root.visible = true
+    enemy_root.modulate = Color.WHITE
+    if is_instance_valid(mobile_buttons.get("attack")):
+        mobile_buttons["attack"].visible = true
+    if is_instance_valid(enemy_health_label):
+        enemy_health_label.text = "THREAT  100%"
+        enemy_health_label.visible = true
     transition_label.text = "THREAT DETECTED"
     transition_label.visible = true
     await get_tree().create_timer(1.0).timeout
@@ -398,7 +482,9 @@ func _update_enemy(delta: float) -> void:
         await get_tree().create_timer(0.65).timeout
         if not game_over:
             transition_label.visible = false
-    if distance > 35.0:
+    # Mission 1 keeps its original far-distance cleanup. Mission 2's night threat
+    # must keep pursuing instead of silently despawning and leaving the encounter stuck.
+    if distance > 35.0 and campaign_mission == 1:
         enemy_active = false
         enemy_root.visible = false
         enemy_health_label.visible = false
@@ -431,9 +517,19 @@ func _attack_enemy() -> void:
     if enemy_health <= 0.0:
         enemy_active = false
         enemy_root.visible = false
+        enemy_root.modulate = Color.WHITE
+        if is_instance_valid(mobile_buttons.get("attack")):
+            mobile_buttons["attack"].visible = false
+        if is_instance_valid(enemy_health_label):
+            enemy_health_label.text = "THREAT ELIMINATED"
+            enemy_health_label.visible = true
         transition_label.text = "THREAT ELIMINATED"
     else:
-        transition_label.text = "HIT CONFIRMED  •  THREAT %d%%" % roundi((enemy_health / enemy_max_health) * 100.0)
+        var remaining_health := roundi((enemy_health / enemy_max_health) * 100.0)
+        if is_instance_valid(enemy_health_label):
+            enemy_health_label.text = "THREAT  %d%%" % remaining_health
+            enemy_health_label.visible = true
+        transition_label.text = "HIT CONFIRMED  •  THREAT %d%%" % remaining_health
     transition_label.visible = true
     await get_tree().create_timer(0.75).timeout
     if not game_over:
@@ -680,7 +776,8 @@ func _start_game() -> void:
     _reset_performance_monitor()
     game_over = false
     player.clear_mobile_input()
-    player.set_physics_process(true)
+    # A completed Mission 2 checkpoint is a results state, not an active survival simulation.
+    player.set_physics_process(not (campaign_mission == 2 and mission_complete))
     camera.current = true
     transition_label.visible = false
     mobile_controls.visible = true
@@ -719,20 +816,52 @@ func _start_game() -> void:
         _update_world_lighting()
 
     _update_survival_hud()
+    # Rebuild the correct Mission 2 objective after loading a checkpoint.
+    # The target distance is refreshed by _update_mission_two() during gameplay.
+    if campaign_mission == 2:
+        if mission_complete:
+            objective_label.text = "MISSION 02 COMPLETE • Rescue contacted"
+        elif radio_contact_restored:
+            objective_label.text = "MISSION 02 • Reach the extraction signal"
+        elif radio_battery_collected:
+            objective_label.text = "MISSION 02 • Restore contact at the radio"
+        else:
+            objective_label.text = "MISSION 02 • Find the radio battery"
     if has_saved_game:
         enemy_active = false
         enemy_root.visible = false
+        # Recreate a threat that was already active when the player saved.
+        # The enemy itself is transient, but the night encounter state is saved.
+        if not mission_complete and not night_survived and night_threat_spawned and world_time >= 18.0:
+            if campaign_mission == 2 or supplies_count >= 1:
+                _spawn_enemy()
+
+    # A completed Mission 2 save opens a clear results state, not live controls.
+    if campaign_mission == 2 and mission_complete:
+        mission_complete_label.text = "MISSION 02 COMPLETE\nRESCUE SIGNAL SENT"
+        mission_complete_label.visible = true
+        mobile_controls.visible = false
+        stamina_label.visible = false
+        interact_label.visible = false
+        for button_name in ["flashlight", "attack", "interact", "use_food", "use_water"]:
+            if mobile_buttons.has(button_name) and is_instance_valid(mobile_buttons[button_name]):
+                mobile_buttons[button_name].visible = false
+        if is_instance_valid(enemy_health_label):
+            enemy_health_label.visible = false
 
 func _update_survival_hud() -> void:
     inventory_label.text = "SUPPLIES  %d / 1   FOOD  %d   WATER  %d" % [supplies_count, food_count, water_count]
-    if supplies_count >= 1 and not night_survived and world_time >= 18.0:
-        objective_label.text = "OBJECTIVE  •  Survive until dawn"
-    elif supplies_count >= 1 and night_survived:
-        objective_label.text = "OBJECTIVE  •  Reach the safe zone"
-    elif supplies_count >= 1:
-        objective_label.text = "OBJECTIVE  •  Prepare for night"
-    else:
-        objective_label.text = "OBJECTIVE  •  Find supplies"
+    # Mission 2 owns its objective text and live target distance; don't overwrite it
+    # with Mission 1's survival objectives on every HUD refresh.
+    if campaign_mission == 1:
+        if supplies_count >= 1 and not night_survived and world_time >= 18.0:
+            objective_label.text = "OBJECTIVE  •  Survive until dawn"
+        elif supplies_count >= 1 and night_survived:
+            objective_label.text = "OBJECTIVE  •  Reach the safe zone"
+        elif supplies_count >= 1:
+            objective_label.text = "OBJECTIVE  •  Prepare for night"
+        else:
+            objective_label.text = "OBJECTIVE  •  Find supplies"
     status_label.text = "HEALTH  %d   HUNGER  %d" % [roundi(health), roundi(hunger)]
     if mobile_buttons.has("use_food"):
         mobile_buttons["use_food"].visible = food_count > 0 and hunger < 99.0 and not menu.visible and not game_over
@@ -762,7 +891,15 @@ func _process(delta: float) -> void:
         enemy_hit_flash = maxf(0.0, enemy_hit_flash - delta)
         if enemy_hit_flash <= 0.0 and is_instance_valid(enemy_root):
             enemy_root.modulate = Color.WHITE
+    if mission_feedback_time > 0.0:
+        mission_feedback_time = maxf(0.0, mission_feedback_time - delta)
+        if mission_feedback_time <= 0.0 and is_instance_valid(transition_label):
+            transition_label.visible = false
     if menu.visible or game_over:
+        return
+    # Stop the clock, hunger drain, autosaves, and enemy updates after Mission 2 extraction.
+    # Mission 1 completion remains active so the player can interact to begin Mission 2.
+    if campaign_mission == 2 and mission_complete:
         return
 
     survival_elapsed += delta
@@ -775,7 +912,7 @@ func _process(delta: float) -> void:
     if next_world_time >= 24.0:
         day_number += int(floor(next_world_time / 24.0))
     world_time = fmod(next_world_time, 24.0)
-    if supplies_count >= 1 and not night_survived and last_world_time >= 18.0 and world_time < 6.0:
+    if campaign_mission == 1 and supplies_count >= 1 and not night_survived and last_world_time >= 18.0 and world_time < 6.0:
         night_survived = true
         night_threat_spawned = false
         enemy_active = false
@@ -809,9 +946,11 @@ func _process(delta: float) -> void:
         _handle_game_over()
         return
 
+    if campaign_mission == 2:
+        _update_mission_two(delta)
     if inside_building:
         _update_interior_interaction()
-    else:
+    elif campaign_mission == 1:
         _update_interaction_target()
         if supplies_count >= 1 and night_survived and is_instance_valid(safe_zone_root):
             if player.global_position.distance_to(safe_zone_root.global_position) <= 3.0:
@@ -831,6 +970,15 @@ func _process(delta: float) -> void:
         if supplies_count >= 1 and not night_survived and not night_threat_spawned and world_time >= 18.0:
             night_threat_spawned = true
             _spawn_enemy()
+
+    # Mission 2 also has a live nighttime threat; it was previously disabled
+    # by the Mission 1-only interaction branch above.
+    if campaign_mission == 2 and not inside_building and not mission_complete:
+        _update_enemy(delta)
+        if not night_survived and not night_threat_spawned and world_time >= 18.0:
+            night_threat_spawned = true
+            _spawn_enemy()
+
     if mobile_buttons.has("attack"):
         mobile_buttons["attack"].visible = enemy_active and not inside_building and not game_over
         mobile_buttons["attack"].disabled = player_attack_cooldown > 0.0
@@ -873,6 +1021,12 @@ func _handle_game_over() -> void:
     DirAccess.remove_absolute("user://days_after_save.json")
 
 func _update_interaction_target() -> void:
+    if campaign_mission == 1 and mission_complete and player.global_position.distance_to(safe_zone_root.global_position) <= 4.0:
+        interaction_target = "NEXT_MISSION"
+        interact_label.text = "Begin next mission • Tap INTERACT"
+        interact_label.visible = true
+        mobile_buttons["interact"].visible = true
+        return
     var from := camera.global_position
     var to := from + -camera.global_transform.basis.z * 5.0
     var query := PhysicsRayQueryParameters3D.create(from, to)
@@ -933,7 +1087,9 @@ func _update_interior_interaction() -> void:
         mobile_buttons["interact"].visible = true
 
 func _interact() -> void:
-    if interaction_target == "BUILDING" and not inside_building:
+    if interaction_target == "NEXT_MISSION":
+        _start_mission_two()
+    elif interaction_target == "BUILDING" and not inside_building:
         _enter_building()
     elif interaction_target == "EXIT" and inside_building:
         _exit_building()
@@ -943,6 +1099,12 @@ func _interact() -> void:
         _take_food()
     elif interaction_target == "WATER" and inside_building:
         _take_water()
+    elif interaction_target == "MISSION_BATTERY" and campaign_mission == 2 and not radio_battery_collected:
+        _collect_mission_battery()
+    elif interaction_target == "MISSION_RADIO" and campaign_mission == 2 and radio_battery_collected and not radio_contact_restored:
+        _restore_mission_radio()
+    elif interaction_target == "MISSION_EXTRACTION" and campaign_mission == 2 and radio_contact_restored and not mission_complete:
+        _complete_mission_two()
 
 func _search_desk() -> void:
     if supplies_count >= 1:
@@ -1297,6 +1459,7 @@ func _stop_game() -> void:
 func _save_game() -> void:
     var save_position := exterior_player_position if inside_building else player.global_position
     var data := {
+        "save_version": 2,
         "player_position": {
             "x": save_position.x,
             "y": save_position.y,
@@ -1313,7 +1476,10 @@ func _save_game() -> void:
         "search_completed": search_completed,
         "night_survived": night_survived,
         "mission_complete": mission_complete,
-        "night_threat_spawned": night_threat_spawned
+        "night_threat_spawned": night_threat_spawned,
+        "campaign_mission": campaign_mission,
+        "radio_battery_collected": radio_battery_collected,
+        "radio_contact_restored": radio_contact_restored
     }
     var file := FileAccess.open("user://days_after_save.json", FileAccess.WRITE)
     if file:
@@ -1335,16 +1501,26 @@ func _load_game() -> bool:
 
     health = clampf(float(parsed.get("health", 100.0)), 0.0, 100.0)
     hunger = clampf(float(parsed.get("hunger", 100.0)), 0.0, 100.0)
-    world_time = fmod(float(parsed.get("world_time", 8.0)), 24.0)
+    world_time = fposmod(float(parsed.get("world_time", 8.0)), 24.0)
     day_number = maxi(1, int(parsed.get("day_number", 1)))
     stamina = clampf(float(parsed.get("stamina", 100.0)), 0.0, 100.0)
-    supplies_count = int(parsed.get("supplies_count", 0))
-    food_count = int(parsed.get("food_count", 0))
-    water_count = int(parsed.get("water_count", 0))
+    supplies_count = maxi(0, int(parsed.get("supplies_count", 0)))
+    food_count = maxi(0, int(parsed.get("food_count", 0)))
+    water_count = maxi(0, int(parsed.get("water_count", 0)))
     search_completed = bool(parsed.get("search_completed", supplies_count >= 1))
     night_survived = bool(parsed.get("night_survived", false))
-    mission_complete = bool(parsed.get("mission_complete", false))
     night_threat_spawned = bool(parsed.get("night_threat_spawned", world_time >= 18.0 and not night_survived))
+    campaign_mission = clampi(int(parsed.get("campaign_mission", 1)), 1, 2)
+    radio_battery_collected = bool(parsed.get("radio_battery_collected", false))
+    radio_contact_restored = bool(parsed.get("radio_contact_restored", false))
+    # Normalize older or partially written checkpoints so mission flags stay coherent.
+    if radio_contact_restored:
+        radio_battery_collected = true
+    mission_complete = bool(parsed.get("mission_complete", false))
+    if campaign_mission != 2 or not radio_contact_restored:
+        mission_complete = false
+    if mission_complete:
+        night_threat_spawned = false
 
     var saved_position = parsed.get("player_position", {})
     if saved_position is Dictionary:
@@ -1357,3 +1533,286 @@ func _load_game() -> bool:
     last_world_time = world_time
     has_saved_game = true
     return true
+
+func _build_mission_two_hud_world() -> void:
+    mission_two_root = Node3D.new()
+    mission_two_root.name = "MissionTwoWorld"
+    mission_two_root.visible = false
+    add_child(mission_two_root)
+    _create_mission_marker("RadioBattery", Vector3(7.0, 0.65, 15.0), Vector3(0.65, 0.5, 0.45), Color(0.82, 0.64, 0.20))
+    _create_mission_marker("EmergencyRadio", Vector3(-7.0, 0.8, 15.0), Vector3(0.7, 1.0, 0.5), Color(0.20, 0.34, 0.38))
+    _create_mission_marker("ExtractionSignal", Vector3(0.0, 0.08, 30.0), Vector3(3.0, 0.12, 3.0), Color(0.18, 0.62, 0.34))
+    _build_mission_two_checkpoint()
+
+func _build_mission_two_checkpoint() -> void:
+    # Low-cost checkpoint dressing: reusable primitive meshes keep the Android build light.
+    _add_checkpoint_box("CheckpointCrateA", Vector3(4.8, 0.55, 18.0), Vector3(1.3, 1.1, 1.2), Color(0.27, 0.22, 0.15))
+    _add_checkpoint_box("CheckpointCrateB", Vector3(5.2, 0.45, 19.2), Vector3(1.0, 0.9, 0.9), Color(0.34, 0.27, 0.18))
+    _add_checkpoint_box("CheckpointCrateC", Vector3(-4.8, 0.55, 18.3), Vector3(1.25, 1.1, 1.15), Color(0.25, 0.24, 0.19))
+    _add_checkpoint_box("RoadBarrierLeft", Vector3(-2.9, 0.55, 23.0), Vector3(2.8, 1.1, 0.35), Color(0.54, 0.22, 0.13))
+    _add_checkpoint_box("RoadBarrierRight", Vector3(3.2, 0.55, 23.0), Vector3(2.4, 1.1, 0.35), Color(0.54, 0.22, 0.13))
+    _add_checkpoint_box("BarrierStripeLeft", Vector3(-2.9, 0.78, 22.80), Vector3(2.55, 0.14, 0.05), Color(0.88, 0.70, 0.28))
+    _add_checkpoint_box("BarrierStripeRight", Vector3(3.2, 0.78, 22.80), Vector3(2.15, 0.14, 0.05), Color(0.88, 0.70, 0.28))
+    _add_checkpoint_barrel("FuelDrumA", Vector3(-9.0, 0.65, 19.0), Color(0.36, 0.25, 0.13))
+    _add_checkpoint_barrel("FuelDrumB", Vector3(9.0, 0.65, 21.0), Color(0.27, 0.31, 0.30))
+    _add_checkpoint_box("BrokenPallet", Vector3(-8.0, 0.12, 24.5), Vector3(1.8, 0.24, 1.0), Color(0.30, 0.23, 0.15))
+
+func _add_checkpoint_box(prop_name: String, pos: Vector3, size: Vector3, color: Color) -> void:
+    var prop := MeshInstance3D.new()
+    prop.name = prop_name
+    var mesh := BoxMesh.new()
+    mesh.size = size
+    prop.mesh = mesh
+    prop.position = pos
+    var material := StandardMaterial3D.new()
+    material.albedo_color = color
+    material.roughness = 0.9
+    prop.material_override = material
+    mission_two_root.add_child(prop)
+
+    # Physical collision makes the checkpoint props part of the playable world.
+    var body := StaticBody3D.new()
+    body.name = "%sCollision" % prop_name
+    body.position = pos
+    var collision := CollisionShape3D.new()
+    var shape := BoxShape3D.new()
+    shape.size = size
+    collision.shape = shape
+    body.add_child(collision)
+    mission_two_root.add_child(body)
+
+func _add_checkpoint_barrel(prop_name: String, pos: Vector3, color: Color) -> void:
+    var prop := MeshInstance3D.new()
+    prop.name = prop_name
+    var mesh := CylinderMesh.new()
+    mesh.top_radius = 0.42
+    mesh.bottom_radius = 0.42
+    mesh.height = 1.3
+    prop.mesh = mesh
+    prop.position = pos
+    var material := StandardMaterial3D.new()
+    material.albedo_color = color
+    material.roughness = 0.86
+    prop.material_override = material
+    mission_two_root.add_child(prop)
+
+    var body := StaticBody3D.new()
+    body.name = "%sCollision" % prop_name
+    body.position = pos
+    var collision := CollisionShape3D.new()
+    var shape := CylinderShape3D.new()
+    shape.radius = 0.42
+    shape.height = 1.3
+    collision.shape = shape
+    body.add_child(collision)
+    mission_two_root.add_child(body)
+
+func _create_mission_marker(marker_name: String, pos: Vector3, size: Vector3, color: Color) -> void:
+    var marker := Node3D.new()
+    marker.name = marker_name
+    marker.position = pos
+    mission_two_root.add_child(marker)
+
+    var mesh := MeshInstance3D.new()
+    mesh.name = "PrimaryProp"
+    var box := BoxMesh.new()
+    box.size = size
+    mesh.mesh = box
+    var material := StandardMaterial3D.new()
+    material.albedo_color = color
+    material.roughness = 0.78
+    material.emission_enabled = true
+    material.emission = color * 0.22
+    mesh.material_override = material
+    marker.add_child(mesh)
+
+    # Give every objective a recognizable silhouette instead of a plain marker cube.
+    if marker_name == "RadioBattery":
+        mesh.position.y = 0.10
+        _add_mission_prop_box(marker, "BatteryTop", Vector3(0.34, 0.12, 0.25), Vector3(0.0, 0.39, 0.0), Color(0.18, 0.19, 0.20))
+        _add_mission_prop_box(marker, "BatteryTerminalA", Vector3(0.10, 0.08, 0.10), Vector3(-0.16, 0.49, 0.0), Color(0.78, 0.78, 0.70))
+        _add_mission_prop_box(marker, "BatteryTerminalB", Vector3(0.10, 0.08, 0.10), Vector3(0.16, 0.49, 0.0), Color(0.78, 0.78, 0.70))
+        _add_mission_prop_box(marker, "BatteryLabel", Vector3(0.28, 0.025, 0.015), Vector3(0.0, 0.18, -0.235), Color(0.95, 0.78, 0.24))
+    elif marker_name == "EmergencyRadio":
+        mesh.position.y = 0.0
+        _add_mission_prop_box(marker, "RadioFace", Vector3(0.48, 0.32, 0.06), Vector3(0.0, 0.15, -0.28), Color(0.08, 0.12, 0.13))
+        _add_mission_prop_box(marker, "RadioDisplay", Vector3(0.25, 0.12, 0.025), Vector3(-0.04, 0.19, -0.32), Color(0.20, 0.72, 0.52))
+        _add_mission_prop_box(marker, "RadioDial", Vector3(0.09, 0.09, 0.035), Vector3(0.22, 0.13, -0.32), Color(0.72, 0.66, 0.46))
+        var antenna := MeshInstance3D.new()
+        antenna.name = "RadioAntenna"
+        var antenna_mesh := CylinderMesh.new()
+        antenna_mesh.top_radius = 0.025
+        antenna_mesh.bottom_radius = 0.04
+        antenna_mesh.height = 0.9
+        antenna.mesh = antenna_mesh
+        antenna.position = Vector3(0.25, 0.95, 0.05)
+        antenna.rotation_degrees.z = -8.0
+        var antenna_material := StandardMaterial3D.new()
+        antenna_material.albedo_color = Color(0.30, 0.32, 0.31)
+        antenna.material_override = antenna_material
+        marker.add_child(antenna)
+    elif marker_name == "ExtractionSignal":
+        mesh.position.y = -0.04
+        var beacon := MeshInstance3D.new()
+        beacon.name = "ExtractionBeacon"
+        var beacon_mesh := CylinderMesh.new()
+        beacon_mesh.top_radius = 0.18
+        beacon_mesh.bottom_radius = 0.28
+        beacon_mesh.height = 1.8
+        beacon.mesh = beacon_mesh
+        beacon.position = Vector3(0.0, 0.95, 0.0)
+        var beacon_material := StandardMaterial3D.new()
+        beacon_material.albedo_color = Color(0.18, 0.82, 0.46)
+        beacon_material.emission_enabled = true
+        beacon_material.emission = Color(0.08, 0.65, 0.28)
+        beacon_material.emission_energy_multiplier = 2.0
+        beacon.material_override = beacon_material
+        marker.add_child(beacon)
+        _add_mission_prop_box(marker, "BeaconCrossbar", Vector3(0.9, 0.08, 0.08), Vector3(0.0, 1.55, 0.0), Color(0.72, 0.92, 0.76))
+
+    var label := Label3D.new()
+    label.name = "ObjectiveLabel"
+    label.text = marker_name.to_upper().replace("_", " ")
+    label.position = Vector3(0, 1.9 if marker_name == "ExtractionSignal" else 1.25, 0)
+    label.font_size = 24
+    label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+    label.modulate = color.lightened(0.35)
+    marker.add_child(label)
+
+func _add_mission_prop_box(parent: Node3D, prop_name: String, size: Vector3, pos: Vector3, color: Color) -> void:
+    var prop := MeshInstance3D.new()
+    prop.name = prop_name
+    var prop_mesh := BoxMesh.new()
+    prop_mesh.size = size
+    prop.mesh = prop_mesh
+    prop.position = pos
+    var prop_material := StandardMaterial3D.new()
+    prop_material.albedo_color = color
+    prop_material.roughness = 0.62
+    prop.material_override = prop_material
+    parent.add_child(prop)
+
+func _start_mission_two() -> void:
+    campaign_mission = 2
+    mission_complete = false
+    player.set_physics_process(true)
+    radio_battery_collected = false
+    radio_contact_restored = false
+    mission_two_root.visible = true
+    # Reset objective props when a fresh campaign starts or Mission 2 is replayed.
+    var battery := mission_two_root.get_node_or_null("RadioBattery")
+    var radio := mission_two_root.get_node_or_null("EmergencyRadio")
+    if is_instance_valid(battery):
+        battery.visible = true
+    if is_instance_valid(radio):
+        radio.visible = true
+    player.global_position = Vector3(0, 1.0, 8.0)
+    objective_label.text = "MISSION 02 • Find the radio battery"
+    mission_complete_label.visible = false
+    enemy_active = false
+    enemy_root.visible = false
+    night_threat_spawned = false
+    world_time = 17.5
+    night_survived = false
+    interaction_target = ""
+    _save_game()
+    transition_label.text = "CHAPTER 02 • NO WAY BACK"
+    transition_label.visible = true
+    await get_tree().create_timer(1.6).timeout
+    if not game_over:
+        transition_label.visible = false
+
+func _update_mission_two(_delta: float) -> void:
+    if not is_instance_valid(mission_two_root) or not mission_two_root.visible:
+        return
+    var battery := mission_two_root.get_node_or_null("RadioBattery") as Node3D
+    var radio := mission_two_root.get_node_or_null("EmergencyRadio") as Node3D
+    var extraction := mission_two_root.get_node_or_null("ExtractionSignal") as Node3D
+
+    # Mission objectives require a deliberate INTERACT action rather than
+    # silently completing when the player walks past an object.
+    interaction_target = ""
+    interact_label.visible = false
+    mobile_buttons["interact"].visible = false
+
+    var guidance_target: Node3D
+    var guidance_name := ""
+    var prompt := ""
+    var target_code := ""
+    var interaction_range := 2.6
+    if not radio_battery_collected and is_instance_valid(battery):
+        guidance_target = battery
+        guidance_name = "RADIO BATTERY"
+        prompt = "Recover radio battery • Tap INTERACT"
+        target_code = "MISSION_BATTERY"
+    elif radio_battery_collected and not radio_contact_restored and is_instance_valid(radio):
+        guidance_target = radio
+        guidance_name = "EMERGENCY RADIO"
+        prompt = "Restore rescue contact • Tap INTERACT"
+        target_code = "MISSION_RADIO"
+    elif radio_contact_restored and is_instance_valid(extraction):
+        guidance_target = extraction
+        guidance_name = "EXTRACTION SIGNAL"
+        prompt = "Send rescue signal • Tap INTERACT"
+        target_code = "MISSION_EXTRACTION"
+        interaction_range = 3.6
+
+    if not is_instance_valid(guidance_target):
+        return
+
+    var target_distance := player.global_position.distance_to(guidance_target.global_position)
+    objective_label.text = "MISSION 02 • %s • %d m" % [guidance_name, roundi(target_distance)]
+    if target_distance <= interaction_range:
+        interaction_target = target_code
+        interact_label.text = prompt
+        interact_label.visible = true
+        mobile_buttons["interact"].visible = true
+
+func _collect_mission_battery() -> void:
+    var battery := mission_two_root.get_node_or_null("RadioBattery")
+    if not is_instance_valid(battery) or radio_battery_collected:
+        return
+    radio_battery_collected = true
+    battery.visible = false
+    interaction_target = ""
+    objective_label.text = "MISSION 02 • Restore contact at the radio"
+    transition_label.text = "RADIO BATTERY RECOVERED"
+    transition_label.visible = true
+    mission_feedback_time = 2.2
+    _save_game()
+
+func _restore_mission_radio() -> void:
+    var radio := mission_two_root.get_node_or_null("EmergencyRadio")
+    if not is_instance_valid(radio) or not radio_battery_collected or radio_contact_restored:
+        return
+    radio_contact_restored = true
+    radio.visible = false
+    interaction_target = ""
+    objective_label.text = "MISSION 02 • Reach the extraction signal"
+    transition_label.text = "RESCUE CHANNEL RESTORED"
+    transition_label.visible = true
+    mission_feedback_time = 2.2
+    _save_game()
+
+func _complete_mission_two() -> void:
+    if mission_complete or not radio_contact_restored:
+        return
+    mission_complete = true
+    player.clear_mobile_input()
+    player.set_physics_process(false)
+    interaction_target = ""
+    # End combat cleanly once extraction succeeds.
+    enemy_active = false
+    if is_instance_valid(enemy_root):
+        enemy_root.visible = false
+    if is_instance_valid(enemy_health_label):
+        enemy_health_label.visible = false
+    if is_instance_valid(mobile_buttons.get("attack")):
+        mobile_buttons["attack"].visible = false
+    mission_complete_label.text = "MISSION 02 COMPLETE\nRESCUE SIGNAL SENT"
+    mission_complete_label.visible = true
+    objective_label.text = "MISSION 02 COMPLETE • Rescue contacted"
+    mission_two_root.visible = false
+    interact_label.visible = false
+    mobile_buttons["interact"].visible = false
+    _save_game()
