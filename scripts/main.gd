@@ -565,6 +565,20 @@ func _build_stamina_hud() -> void:
     stamina_label.visible = false
     $HUD.add_child(stamina_label)
 
+func _update_stamina(delta: float) -> void:
+    var sprinting := player.is_sprinting
+    if sprinting and stamina > 0.0:
+        stamina = maxf(0.0, stamina - delta * 28.0)
+    else:
+        stamina = minf(100.0, stamina + delta * 18.0)
+    player.sprint_allowed = stamina > 0.5
+    if stamina <= 0.5 and player.is_sprinting:
+        player.is_sprinting = false
+    if is_instance_valid(stamina_label):
+        stamina_label.text = "STAMINA  %d" % roundi(stamina)
+        stamina_label.visible = not menu.visible and not game_over
+
+
 func _build_time_hud() -> void:
     time_label = Label.new()
     time_label.name = "Time"
