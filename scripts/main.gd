@@ -1371,6 +1371,7 @@ func _stop_game() -> void:
 func _save_game() -> void:
     var save_position := exterior_player_position if inside_building else player.global_position
     var data := {
+        "save_version": 2,
         "player_position": {
             "x": save_position.x,
             "y": save_position.y,
@@ -1412,7 +1413,7 @@ func _load_game() -> bool:
 
     health = clampf(float(parsed.get("health", 100.0)), 0.0, 100.0)
     hunger = clampf(float(parsed.get("hunger", 100.0)), 0.0, 100.0)
-    world_time = fmod(float(parsed.get("world_time", 8.0)), 24.0)
+    world_time = fposmod(float(parsed.get("world_time", 8.0)), 24.0)
     day_number = maxi(1, int(parsed.get("day_number", 1)))
     stamina = clampf(float(parsed.get("stamina", 100.0)), 0.0, 100.0)
     supplies_count = maxi(0, int(parsed.get("supplies_count", 0)))
