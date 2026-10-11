@@ -1610,6 +1610,13 @@ func _start_mission_two() -> void:
     radio_battery_collected = false
     radio_contact_restored = false
     mission_two_root.visible = true
+    # Reset objective props when a fresh campaign starts or Mission 2 is replayed.
+    var battery := mission_two_root.get_node_or_null("RadioBattery")
+    var radio := mission_two_root.get_node_or_null("EmergencyRadio")
+    if is_instance_valid(battery):
+        battery.visible = true
+    if is_instance_valid(radio):
+        radio.visible = true
     player.global_position = Vector3(0, 1.0, 8.0)
     objective_label.text = "MISSION 02 • Find the radio battery"
     mission_complete_label.visible = false
