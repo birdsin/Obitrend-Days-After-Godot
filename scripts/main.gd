@@ -839,9 +839,9 @@ func _process(delta: float) -> void:
         _update_mission_two(delta)
     if inside_building:
         _update_interior_interaction()
-    else:
+    elif campaign_mission == 1:
         _update_interaction_target()
-        if campaign_mission == 1 and supplies_count >= 1 and night_survived and is_instance_valid(safe_zone_root):
+        if supplies_count >= 1 and night_survived and is_instance_valid(safe_zone_root):
             if player.global_position.distance_to(safe_zone_root.global_position) <= 3.0:
                 objective_label.text = "OBJECTIVE COMPLETE  •  Safe zone reached"
                 if not mission_complete:
