@@ -859,6 +859,15 @@ func _process(delta: float) -> void:
         if supplies_count >= 1 and not night_survived and not night_threat_spawned and world_time >= 18.0:
             night_threat_spawned = true
             _spawn_enemy()
+
+    # Mission 2 also has a live nighttime threat; it was previously disabled
+    # by the Mission 1-only interaction branch above.
+    if campaign_mission == 2 and not inside_building:
+        _update_enemy(delta)
+        if not night_survived and not night_threat_spawned and world_time >= 18.0:
+            night_threat_spawned = true
+            _spawn_enemy()
+
     if mobile_buttons.has("attack"):
         mobile_buttons["attack"].visible = enemy_active and not inside_building and not game_over
         mobile_buttons["attack"].disabled = player_attack_cooldown > 0.0
