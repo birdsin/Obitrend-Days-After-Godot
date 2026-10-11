@@ -1403,6 +1403,48 @@ func _build_mission_two_hud_world() -> void:
     _create_mission_marker("RadioBattery", Vector3(7.0, 0.65, 15.0), Vector3(0.65, 0.5, 0.45), Color(0.82, 0.64, 0.20))
     _create_mission_marker("EmergencyRadio", Vector3(-7.0, 0.8, 15.0), Vector3(0.7, 1.0, 0.5), Color(0.20, 0.34, 0.38))
     _create_mission_marker("ExtractionSignal", Vector3(0.0, 0.08, 30.0), Vector3(3.0, 0.12, 3.0), Color(0.18, 0.62, 0.34))
+    _build_mission_two_checkpoint()
+
+func _build_mission_two_checkpoint() -> void:
+    # Low-cost checkpoint dressing: reusable primitive meshes keep the Android build light.
+    _add_checkpoint_box("CheckpointCrateA", Vector3(4.8, 0.55, 18.0), Vector3(1.3, 1.1, 1.2), Color(0.27, 0.22, 0.15))
+    _add_checkpoint_box("CheckpointCrateB", Vector3(5.2, 0.45, 19.2), Vector3(1.0, 0.9, 0.9), Color(0.34, 0.27, 0.18))
+    _add_checkpoint_box("CheckpointCrateC", Vector3(-4.8, 0.55, 18.3), Vector3(1.25, 1.1, 1.15), Color(0.25, 0.24, 0.19))
+    _add_checkpoint_box("RoadBarrierLeft", Vector3(-2.9, 0.55, 23.0), Vector3(2.8, 1.1, 0.35), Color(0.54, 0.22, 0.13))
+    _add_checkpoint_box("RoadBarrierRight", Vector3(3.2, 0.55, 23.0), Vector3(2.4, 1.1, 0.35), Color(0.54, 0.22, 0.13))
+    _add_checkpoint_box("BarrierStripeLeft", Vector3(-2.9, 0.78, 22.80), Vector3(2.55, 0.14, 0.05), Color(0.88, 0.70, 0.28))
+    _add_checkpoint_box("BarrierStripeRight", Vector3(3.2, 0.78, 22.80), Vector3(2.15, 0.14, 0.05), Color(0.88, 0.70, 0.28))
+    _add_checkpoint_barrel("FuelDrumA", Vector3(-9.0, 0.65, 19.0), Color(0.36, 0.25, 0.13))
+    _add_checkpoint_barrel("FuelDrumB", Vector3(9.0, 0.65, 21.0), Color(0.27, 0.31, 0.30))
+    _add_checkpoint_box("BrokenPallet", Vector3(-8.0, 0.12, 24.5), Vector3(1.8, 0.24, 1.0), Color(0.30, 0.23, 0.15))
+
+func _add_checkpoint_box(prop_name: String, pos: Vector3, size: Vector3, color: Color) -> void:
+    var prop := MeshInstance3D.new()
+    prop.name = prop_name
+    var mesh := BoxMesh.new()
+    mesh.size = size
+    prop.mesh = mesh
+    prop.position = pos
+    var material := StandardMaterial3D.new()
+    material.albedo_color = color
+    material.roughness = 0.9
+    prop.material_override = material
+    mission_two_root.add_child(prop)
+
+func _add_checkpoint_barrel(prop_name: String, pos: Vector3, color: Color) -> void:
+    var prop := MeshInstance3D.new()
+    prop.name = prop_name
+    var mesh := CylinderMesh.new()
+    mesh.top_radius = 0.42
+    mesh.bottom_radius = 0.42
+    mesh.height = 1.3
+    prop.mesh = mesh
+    prop.position = pos
+    var material := StandardMaterial3D.new()
+    material.albedo_color = color
+    material.roughness = 0.86
+    prop.material_override = material
+    mission_two_root.add_child(prop)
 
 func _create_mission_marker(marker_name: String, pos: Vector3, size: Vector3, color: Color) -> void:
     var marker := Node3D.new()
