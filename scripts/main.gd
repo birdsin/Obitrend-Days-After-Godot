@@ -90,8 +90,10 @@ func _ready() -> void:
         start_button.pressed.connect(_new_game)
     start_button.text = "START GAME"
 
-    menu.mouse_filter = Control.MOUSE_FILTER_PASS
-    $HUD/Menu/Panel.mouse_filter = Control.MOUSE_FILTER_PASS
+    # Let touch events reach the actual buttons on Android. The full-screen
+    # menu and decorative panel must not intercept the button's GUI input.
+    menu.mouse_filter = Control.MOUSE_FILTER_IGNORE
+    $HUD/Menu/Panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
     _build_checkpoint_menu()
     _build_city_collisions()
