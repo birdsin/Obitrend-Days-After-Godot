@@ -862,7 +862,7 @@ func _process(delta: float) -> void:
 
     # Mission 2 also has a live nighttime threat; it was previously disabled
     # by the Mission 1-only interaction branch above.
-    if campaign_mission == 2 and not inside_building:
+    if campaign_mission == 2 and not inside_building and not mission_complete:
         _update_enemy(delta)
         if not night_survived and not night_threat_spawned and world_time >= 18.0:
             night_threat_spawned = true
@@ -1672,6 +1672,14 @@ func _complete_mission_two() -> void:
         return
     mission_complete = true
     interaction_target = ""
+    # End combat cleanly once extraction succeeds.
+    enemy_active = false
+    if is_instance_valid(enemy_root):
+        enemy_root.visible = false
+    if is_instance_valid(enemy_health_label):
+        enemy_health_label.visible = false
+    if is_instance_valid(mobile_buttons.get("attack")):
+        mobile_buttons["attack"].visible = false
     mission_complete_label.text = "MISSION 02 COMPLETE\nRESCUE SIGNAL SENT"
     mission_complete_label.visible = true
     objective_label.text = "MISSION 02 COMPLETE • Rescue contacted"
