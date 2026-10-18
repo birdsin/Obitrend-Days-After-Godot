@@ -1,31 +1,23 @@
-# DAY'S AFTER ChatGPT Helper (Godot 4.x)
+# DAY'S AFTER ChatGPT Assistant (Godot 4.x)
 
-This optional editor dock is designed as a low-cost bridge for the Godot Android Editor. It does **not** call the OpenAI API, store credentials, or modify game files. It uses the ChatGPT app/site you already access, so it does not add API charges.
+This optional editor dock provides a direct OpenAI API mode and a copy-prompt workflow for ChatGPT. It does not apply generated code automatically.
 
-## Install in a separate test copy first
+## Install safely
+1. Download this branch as a ZIP and extract it to a separate folder, or copy `addons/days_after_chatgpt/` into a duplicate project.
+2. Open the duplicate in Godot 4.x Android Editor.
+3. Open Project → Project Settings → Plugins and enable DAY'S AFTER ChatGPT Assistant.
+4. Confirm the dock appears. Test only in the duplicate project before considering any changes to the original.
 
-1. Make a separate copy/branch of the DAY'S AFTER project before trying the plugin.
-2. Copy the folder `addons/days_after_chatgpt/` into the project copy.
-3. Open the copy in Godot 4.x.
-4. Open **Project → Project Settings → Plugins** and enable **DAY'S AFTER ChatGPT Helper**.
-5. The dock should appear on the right side of the editor. If it is hidden, check the editor's dock layout.
+## Live API mode
+1. Create/use an OpenAI API key from your OpenAI Platform account. API billing is separate from a ChatGPT subscription.
+2. Enter it into the masked API-key field in the dock.
+3. Keep the model as `gpt-5-mini` unless your API project has access to another model.
+4. Tap Save API settings on this device, then Ask OpenAI.
+5. The key is saved in local Godot editor settings, not in the project files. Never place it in a script, scene, repository, or game build.
+6. Requests send the task and any pasted context to OpenAI. Do not include private information.
 
-## Use it
-
-1. Enter one specific task in the top field.
-2. Optionally paste the relevant script or error. Never paste passwords, signing keys, API keys, or tokens.
-3. Tap **Copy safe prompt**.
-4. Tap **Open ChatGPT**, paste the prompt into ChatGPT, and ask for the proposed fix.
-5. Paste the answer into the response field if you want to keep it visible while working.
-6. Review and apply code manually to the separate test copy. Run the project and test before moving any changes to your main branch.
-
-## Important limitations
-
-- This is a prompt bridge, not a live API-powered chat window.
-- It does not read project files automatically, apply generated code, or run tests.
-- Using the OpenAI API directly would be a separate integration and may incur API charges. A ChatGPT subscription does not automatically include API usage.
-- The Godot Android Editor has platform limitations; this plugin uses standard editor/GDScript APIs and should still be tested on the exact Godot version installed on your phone.
-
-## Safe rollout
-
-The original `main` branch is not changed by this feature branch. Keep this plugin optional until it has been tested on a duplicate project and confirmed not to affect the game.
+## Safety and limitations
+- API usage may incur charges.
+- This direct API mode is for your own local editor. Do not ship a personal key with a game or share it with other users. Public/team tools should use an authenticated backend with server-side secrets and usage limits.
+- The assistant does not index files automatically, apply changes, or run tests. Review suggestions and apply them manually in the test copy.
+- Android editor compatibility still needs to be verified on your exact Godot version.
